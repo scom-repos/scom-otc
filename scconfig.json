@@ -1,0 +1,35 @@
+{
+    "env": "testnet",
+    "logo": "logo",
+    "main": "@modules/main",
+    "assets": "@modules/assets",
+    "moduleDir": "modules",
+    "modules": {
+        "@modules/assets": {
+            "path": "assets"
+        },
+        "@modules/global": {
+            "path": "global"
+        },
+        "@modules/store": {
+            "path": "store"
+        },
+        "@modules/otc-queue-utils": {
+            "path": "otc-queue-utils"
+        },
+        "@modules/alert": {
+            "path": "alert"
+        },
+        "@modules/panel-config": {
+            "path": "panel-config"
+        },
+        "@modules/main": {
+            "path": "main"
+        }
+    },
+    "dependencies": {
+        "@ijstech/eth-contract": "*",
+        "@scom/oswap-openswap-contract": "*",
+        "@scom/oswap-chainlink-contract": "*"
+    }
+}
