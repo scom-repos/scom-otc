@@ -200,12 +200,19 @@ Styles.cssRule('.panel-config', {
         }
       }
     },
-    '#loadingElm.i-loading--active': {
-      marginTop: '2rem',
-      position: 'initial',
+    '#loadingElm':{
       $nest: {
-        '.i-loading-spinner': {
+        '&.i-loading--active': {
           marginTop: '2rem',
+          position: 'initial',
+          $nest: {
+            '.i-loading-spinner': {
+              marginTop: '2rem',
+            },
+          },
+        },
+        '&.i-loading-overlay': {
+          background: '#192046 !important'
         },
       },
     },

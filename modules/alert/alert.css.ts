@@ -6,12 +6,13 @@ export default Styles.style({
     'i-label > *': {
       color: '#fff',
       fontSize: '.875rem',
-      wordBreak: 'normal'
+      wordBreak: 'normal',
     },
     '.modal': {
       minWidth: '25%',
       maxWidth: '100%',
-      width: 455
+      width: 455,
+      background: '#192046',
     },
     '.i-modal-close svg': {
       fill: '#F05E61'

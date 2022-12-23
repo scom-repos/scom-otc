@@ -1,7 +1,8 @@
-import { Container, customElements, ControlElement, Module, Input, application, Control, Upload, Checkbox, Image, HStack } from '@ijstech/components';
+import { Container, customElements, ControlElement, Module, Input, application, Control, Upload, Checkbox, Image, HStack, Label, VStack } from '@ijstech/components';
+import assets from '@modules/assets';
 import { EventId, isValidNumber } from '@modules/global';
 import { getTokens } from '@modules/otc-queue-utils';
-import { getTokenIcon, IOTCQueueConfig } from '@modules/store';
+import { getTokenIcon, IOTCQueueConfig, tokenSymbol } from '@modules/store';
 
 declare global {
 	namespace JSX {
@@ -14,6 +15,7 @@ declare global {
 @customElements('campaign-config')
 export class CampaignConfig extends Module {
 	private inputName: Input;
+	private inputDesc: Input;
 	private uploadLogo: Upload;
 	private inputPairAddress: Input;
 	private inputOfferIndex: Input;
@@ -21,6 +23,8 @@ export class CampaignConfig extends Module {
 	private wrapperTokens: HStack;
 	private imgFirstToken: Image;
 	private imgSecondToken: Image;
+	private lbFirstToken: Label;
+	private lbSecondToken: Label;
 
 	private pairAddress: string = '';
 	private logoUrl: string = '';
@@ -29,6 +33,7 @@ export class CampaignConfig extends Module {
 	private _isNew: boolean;
 	private _data?: IOTCQueueConfig;
 	private isInitialized = false;
+	setLoading: any;
 
 	constructor(parent?: Container, options?: any) {
 		super(parent, options);
@@ -60,6 +65,9 @@ export class CampaignConfig extends Module {
 		if (this.data) {
 			const { title, pairAddress, offerIndex, direction, logo } = this.data;
 			if (this.isInitialized) {
+				if (this.setLoading) {
+					this.setLoading(true);
+				}
 				this.inputName.value = title;
 				this.pairAddress = pairAddress;
 				this.inputPairAddress.value = pairAddress;
@@ -70,6 +78,9 @@ export class CampaignConfig extends Module {
 					this.logoUrl = logo;
 				}
 				await this.getTokens();
+				if (this.setLoading) {
+					this.setLoading(false);
+				}
 				this.emitInput();
 			}
 		}
@@ -100,9 +111,13 @@ export class CampaignConfig extends Module {
 		if (this.ckbDirection.checked) {
 			this.imgFirstToken.url = getTokenIcon(this.firstToken);
 			this.imgSecondToken.url = getTokenIcon(this.secondToken);
+			this.lbFirstToken.caption = tokenSymbol(this.firstToken);
+			this.lbSecondToken.caption = tokenSymbol(this.secondToken);
 		} else {
 			this.imgFirstToken.url = getTokenIcon(this.secondToken);
 			this.imgSecondToken.url = getTokenIcon(this.firstToken);
+			this.lbFirstToken.caption = tokenSymbol(this.secondToken);
+			this.lbSecondToken.caption = tokenSymbol(this.firstToken);
 		}
 	}
 
@@ -153,6 +168,7 @@ export class CampaignConfig extends Module {
 	getData = () => {
 		const campaign: IOTCQueueConfig = {
 			title: this.inputName.value,
+			description: this.inputDesc.value,
 			logo: this.logoUrl || undefined,
 			pairAddress: this.inputPairAddress.value,
 			offerIndex: this.inputOfferIndex.value,
@@ -178,6 +194,10 @@ export class CampaignConfig extends Module {
 							<i-label caption="*" font={{ color: '#F15E61', size: '16px' }} />
 						</i-hstack>
 						<i-input id="inputName" class="input-text w-input" onChanged={this.onInputText} />
+					</i-hstack>
+					<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
+						<i-label class="lb-title" caption="Description" />
+						<i-input id="inputDesc" class="input-area w-input" inputType="textarea" rows={3} onChanged={this.onInputText} />
 					</i-hstack>
 					<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
 						<i-label class="lb-title" caption="Logo" />
@@ -210,8 +230,10 @@ export class CampaignConfig extends Module {
 							/>
 							<i-hstack id="wrapperTokens" visible={false} gap={8} verticalAlignment="center">
 								<i-image id="imgFirstToken" width={24} height={24} />
+								<i-label id="lbFirstToken"/>
 								<i-icon name="minus" fill="#fff" width={12} height={12} />
 								<i-image id="imgSecondToken" width={24} height={24} />
+								<i-label id="lbSecondToken"/>
 							</i-hstack>
 						</i-hstack>
 					</i-hstack>

@@ -1,9 +1,9 @@
 import { Module, Panel, Button, Label, VStack, Container, ControlElement, IEventBus, application, customModule, Modal, Input, moment, HStack } from '@ijstech/components';
 import { BigNumber, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
 import Assets from '@modules/assets';
-import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject } from '@modules/global';
-import { InfuraId, Networks, getChainId, getTokenMap, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, tokenSymbol, getTokenIcon, fallBackUrl, getTokenBalances, getWallet, setTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueConfig, IOTCQueueData } from '@modules/store';
-import { executeSell, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
+import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from '@modules/global';
+import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, setTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueConfig, IOTCQueueData, viewOnExplorerByAddress } from '@modules/store';
+import { executeSell, getHybridRouterAddress, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
 import { Alert } from '@modules/alert';
 import { PanelConfig } from '@modules/panel-config';
 import './index.css';
@@ -30,6 +30,7 @@ export class Main extends Module implements PageBlock {
 	private btnInputCampaign: Button;
 	private btnImportCampaign: Button;
 	private otcQueueInfo: IOTCQueueData | null;
+	private btnMax: Button;
 	private firstInputBox: VStack;
 	private secondInputBox: VStack;
 	private firstInput: Input;
@@ -223,38 +224,33 @@ export class Main extends Module implements PageBlock {
 
 	private get isSellDisabled() {
 		if (!this.otcQueueInfo) return true;
-		const { startDate, expire, allowAll, locked } = this.otcQueueInfo;
+		const { startDate, expire } = this.otcQueueInfo;
 		const isUpcoming = moment().isBefore(moment(startDate));
 		const isEnded = moment().isAfter(moment(expire));
 		if (isUpcoming || isEnded) {
 			return true;
 		}
-		if (!allowAll) {
-			// TODO
-		}
-		if (locked) {
-			// TODO
-		}
 		return false;
 	}
 
 	private getFirstAvailableBalance = () => {
-		// TODO
 		if (!this.otcQueueInfo || this.isSellDisabled) {
 			return '0';
 		}
-		const { amount } = this.otcQueueInfo;
+		const { availableAmount, amount, offerPrice, tradeFee } = this.otcQueueInfo;
 		const tokenBalances = getTokenBalances();
-		return '0';
-		
+		const availableBalance = new BigNumber(availableAmount).times(offerPrice).dividedBy(tradeFee);
+		const tokenBalance = new BigNumber(tokenBalances[this.firstTokenObject?.address?.toLowerCase()]);
+		const amountIn = new BigNumber(amount).times(offerPrice).dividedBy(tradeFee);
+		return (BigNumber.minimum(availableBalance, tokenBalance, amountIn)).toFixed();		
 	}
 
 	private getSecondAvailableBalance = () => {
-		// TODO
 		if (!this.otcQueueInfo) {
 			return '0';
 		}
-		return '0';
+		const { offerPrice, tradeFee } = this.otcQueueInfo;
+		return new BigNumber(this.getFirstAvailableBalance()).dividedBy(offerPrice).times(tradeFee).toFixed();
 	}
 
 	private handleFocusInput = (first: boolean, isFocus: boolean) => {
@@ -266,12 +262,17 @@ export class Main extends Module implements PageBlock {
 		}
 	}
 
+	private setMaxBalance = () => {
+		this.firstInput.value = limitDecimals(this.getFirstAvailableBalance(), this.firstTokenObject?.decimals || 18);
+		this.firstInputChange();
+	}
+
 	private firstInputChange = () => {
 		const firstToken = this.firstTokenObject;
 		const secondToken = this.secondTokenObject;
 		limitInputNumber(this.firstInput, firstToken?.decimals || 18);
 		if (!this.otcQueueInfo) return;
-		const info = this.otcQueueInfo || {} as any;
+		const info = this.otcQueueInfo;
 		const { offerPrice, tradeFee } = info;
 		const symbol = this.secondTokenObject?.symbol || '';
 		const inputVal = new BigNumber(this.firstInput.value).dividedBy(offerPrice).times(tradeFee);
@@ -282,6 +283,7 @@ export class Main extends Module implements PageBlock {
 			this.lbFee.caption = `${formatNumber(new BigNumber(1).minus(tradeFee).times(this.firstInput.value), 6)} ${symbol}`;
 			this.secondInput.value = limitDecimals(inputVal, secondToken?.decimals || 18);
 		}
+		this.btnSell.caption = this.submitButtonText;
 		this.updateBtnSell();
 	}
 
@@ -301,6 +303,7 @@ export class Main extends Module implements PageBlock {
 			this.firstInput.value = limitDecimals(inputVal, firstToken?.decimals || 18);
 			this.lbFee.caption = `${formatNumber(new BigNumber(1).minus(tradeFee).times(this.firstInput.value), 6)} ${symbol}`;
 		}
+		this.btnSell.caption = this.submitButtonText;
 		this.updateBtnSell();
 	}
 
@@ -323,9 +326,7 @@ export class Main extends Module implements PageBlock {
 
 	private onSell = () => {
 		if (this.otcQueueInfo && this.firstTokenObject && this.isApproveButtonShown) {
-			const info = this.otcQueueInfo || {} as any;
-			this.approvalModelAction.doApproveAction(this.firstTokenObject, info.tokenInAvailable);
-			return;
+			this.approvalModelAction.doApproveAction(this.firstTokenObject, this.otcQueueInfo.availableAmount.toFixed());
 		} else {
 			this.approvalModelAction.doPayAction();
 		}
@@ -333,10 +334,10 @@ export class Main extends Module implements PageBlock {
 
 	private onSubmit = async () => {
 		if (!this.otcQueueInfo) return;
-		const firstToken = this.firstTokenObject;
-		const secondToken = this.secondTokenObject
-		const { pairAddress, offerIndex } = this.data;
-		this.showResultMessage(this.otcQueueAlert, 'warning', `Selling ${formatNumber(this.firstInput.value)} ${firstToken?.symbol} to ${formatNumber(this.secondInput.value)} ${secondToken?.symbol}`);
+		const firstToken = { ...this.firstTokenObject };
+		const secondToken = { ...this.secondTokenObject };
+		const { pairAddress, offerIndex } = this.otcQueueInfo;
+		this.showResultMessage(this.otcQueueAlert, 'warning', `Selling ${formatNumber(this.firstInput.value)} ${firstToken?.symbol || ''} to ${formatNumber(this.secondInput.value)} ${secondToken?.symbol || ''}`);
 		const params = {
 			provider: "RestrictedOracle",
 			queueType: QueueType.GROUP_QUEUE,
@@ -357,6 +358,7 @@ export class Main extends Module implements PageBlock {
 	private updateInput = (enabled: boolean) => {
 		this.firstInput.enabled = enabled;
 		this.secondInput.enabled = enabled;
+		this.btnMax.enabled = enabled;
 	}
 
 	private get submitButtonText() {
@@ -382,7 +384,8 @@ export class Main extends Module implements PageBlock {
 	};
 
 	private initApprovalModelAction = async () => {
-		this.approvalModelAction = await getERC20ApprovalModelAction('',
+		const spenderAddress = getHybridRouterAddress();
+		this.approvalModelAction = await getERC20ApprovalModelAction(spenderAddress,
 			{
 				sender: this,
 				payAction: this.onSubmit,
@@ -436,8 +439,6 @@ export class Main extends Module implements PageBlock {
 					this.btnSell.caption = this.submitButtonText;
 				}
 			});
-		// TODO
-		// setApprovalModalSpenderAddress(Market.HYBRID);
 		this.approvalModelAction.checkAllowance(this.firstTokenObject, this.getFirstAvailableBalance());
 	}
 
@@ -514,32 +515,74 @@ export class Main extends Module implements PageBlock {
 	private renderOTCQueueCampaign = async () => {
 		if (this.otcQueueInfo) {
 			this.otcQueueElm.clearInnerHTML();
-			const { offerPrice, startDate, expire } = this.otcQueueInfo;
-			const { title, logo } = this.data;
+			const { pairAddress, totalAmount, amount, offerPrice, startDate, expire } = this.otcQueueInfo;
+			const { title, description, logo } = this.data;
+			const chainId = getChainId();
 			const firstSymbol = this.firstTokenObject?.symbol || '';
 			const usd = this.tokenPrice ? new BigNumber(offerPrice).times(this.tokenPrice).toFixed() : '0';
 
-			const hStackTime = await HStack.create({ gap: 8, verticalAlignment: 'center' });
-			const lbTime = await Label.create({ caption: 'Starts In', font: { size: '16px' } });
-			const lbTimeValue = await Label.create({ caption: '-', font: { size: '16px', name: 'Montserrat Bold' } });
-			lbTime.classList.add('opacity-50');
-			hStackTime.appendChild(lbTime);
-			hStackTime.appendChild(lbTimeValue);
+			const hStackTimer = await HStack.create({ gap: 8, verticalAlignment: 'center' });
+			const lbTimer = await Label.create({ caption: 'Starts In', font: { size: '16px' } });
+			lbTimer.classList.add('opacity-50');
+			const lbHour = await Label.create();
+			const lbDay = await Label.create();
+			const lbMin = await Label.create();
+			lbHour.classList.add('timer-value');
+			lbDay.classList.add('timer-value');
+			lbMin.classList.add('timer-value');
+			hStackTimer.appendChild(lbTimer);
+			hStackTimer.appendChild(
+				<i-panel lineHeight="29px">
+					<i-hstack gap={4} verticalAlignment="center" class="custom-timer">
+						{lbDay}
+						<i-label caption="D" class="timer-unit" />
+						{lbHour}
+						<i-label caption="H" class="timer-unit" />
+						{lbMin}
+						<i-label caption="M" class="timer-unit" />
+					</i-hstack>
+				</i-panel>
+			);
+
+			const hStackEndTime = await HStack.create({ gap: 8, verticalAlignment: 'center', visible: false });
+			const lbEndTime = await Label.create({ caption: 'Ended On', font: { size: '16px' } });
+			lbEndTime.classList.add('opacity-50');
+			hStackEndTime.appendChild(lbEndTime);
+			hStackEndTime.appendChild(
+				<i-label caption={formatDate(expire)} font={{ size: '16px', bold: true }} lineHeight="29px" />
+			);
+
 			let interval: any;
 			const setTimer = () => {
+				let days = 0;
+				let hours = 0;
+				let mins = 0;
 				if (moment().isBefore(moment(startDate))) {
-					lbTime.caption = 'Starts In';
-					lbTimeValue.caption = formatDate(startDate);
+					lbTimer.caption = 'Starts In';
+					days = moment(startDate).diff(moment(), 'days');
+					hours = moment(startDate).diff(moment(), 'hours') - days * 24;
+					mins = moment(startDate).diff(moment(), 'minutes') - days * 24 * 60 - hours * 60;
+				} else if (moment(moment()).isBefore(expire)) {
+					lbTimer.caption = 'Ends In';
+					days = moment(expire).diff(moment(), 'days');
+					hours = moment(expire).diff(moment(), 'hours') - days * 24;
+					mins = moment(expire).diff(moment(), 'minutes') - days * 24 * 60 - hours * 60;
 				} else {
-					lbTime.caption =  'Ends In';
-					lbTimeValue.caption = formatDate(expire);
+					hStackTimer.visible = false;
+					hStackEndTime.visible = true;
+					lbEndTime.caption = 'Ended On';
+					days = hours = mins = 0;
 					clearInterval(interval);
 				}
+				lbDay.caption = `${days}`;
+				lbHour.caption = `${hours}`;
+				lbMin.caption = `${mins}`;
 			}
 			setTimer();
 			interval = setInterval(() => {
 				setTimer();
-			}, 5000);
+			}, 1000);
+
 			this.otcQueueElm.clearInnerHTML();
 			this.otcQueueElm.appendChild(
 				<i-panel class="pnl-ofc-queue" padding={{ bottom: 15, top: 15, right: 20, left: 20 }} height="auto">
@@ -555,39 +598,49 @@ export class Main extends Module implements PageBlock {
 									fallbackUrl={fallBackUrl}
 								/> : []
 							}
-							<i-label caption="Limited Time No-Slippage smart-contract based OTC offer" class="opacity-50 line-clamp" font={{ size: '10px', color: '#FFF' }} />
+							<i-label caption={description || ''} class="opacity-50 line-clamp" font={{ size: '10px', color: '#FFF' }} />
 							<i-vstack gap={4} margin={{ top: 8 }} verticalAlignment="center">
 								<i-label caption="Smart Contract" class="opacity-50" font={{ size: '8px', color: '#FFF' }} />
-								<i-label caption="bc...x0wlh" font={{ size: '10px', color: '#FFF' }} />
+								<i-label caption={truncateAddress(pairAddress)} font={{ size: '10px', color: '#FFF' }} class="smart-contract--link" onClick={() => viewOnExplorerByAddress(chainId, pairAddress)} />
 							</i-vstack>
 							<i-label caption="Terms & Condition" display="block" margin={{ top: 'auto' }} class="opacity-50" font={{ size: '10px', color: '#FFF' }} />
 						</i-vstack>
 						<i-vstack verticalAlignment="center">
 							<i-vstack gap={4} verticalAlignment="center">
 								<i-label caption="Offer to Buy" font={{ size: '12px' }} class="opacity-50" />
-								<i-hstack gap={4} verticalAlignment="center">
+								<i-hstack gap={4} verticalAlignment="end">
 									<i-label caption={`${formatNumber(offerPrice)} ${this.secondTokenObject?.symbol || ''}`} font={{ size: '24px', name: 'Montserrat Bold' }} />
-									<i-label caption={`~ ${formatNumber(usd)} USD`} font={{ size: '12px' }} class="opacity-50" />
+									<i-label caption={`~ ${formatNumber(usd)} USD`} font={{ size: '12px' }} lineHeight="22px" class="opacity-50" />
 								</i-hstack>
 							</i-vstack>
-							<i-hstack gap={30} margin={{ top: 15 }} verticalAlignment="center">
-								<i-vstack gap={4}>
+							<i-hstack gap={50} margin={{ top: 15 }} verticalAlignment="start">
+								<i-vstack gap={4} width="calc(50% - 25px)">
 									<i-label caption="Offer Availability" font={{ size: '12px' }} class="opacity-50" />
 									<i-hstack gap={4}>
-										<i-label caption="250,000" font={{ size: '16px', name: 'Montserrat Bold' }} />
-										<i-label caption="/ 1,000,000 IDIA" class="opacity-50" font={{ size: '16px', name: 'Montserrat Bold' }} />
+										<i-label caption={formatNumber(amount)} font={{ size: '12px', name: 'Montserrat Bold' }} />
+										<i-label caption={`/ ${formatNumber(totalAmount)} ${this.firstTokenObject?.symbol || ''}`} class="opacity-50" font={{ size: '12px', name: 'Montserrat Bold' }} />
 									</i-hstack>
+									<i-progress width="100%" height="auto" percent={amount.dividedBy(totalAmount).multipliedBy(100).toNumber()} strokeWidth={6} strokeColor="#F15E61" />
 								</i-vstack>
 								<i-vstack gap={4}>
 									<i-label caption="Valid Period" font={{ size: '12px' }} class="opacity-50" />
-									{ hStackTime }
+									{ hStackTimer }
+									{ hStackEndTime }
 								</i-vstack>
 							</i-hstack>
-							<i-hstack gap={20} margin={{ top: 15 }} verticalAlignment="center">
-								<i-vstack gap={4} width="calc(50% - 30px)" height={90} verticalAlignment="center">
-									<i-hstack gap={4} verticalAlignment="center">
+							<i-hstack gap={16} margin={{ top: 15 }} verticalAlignment="center">
+								<i-vstack gap={4} width="calc(50% - 27px)" height={85} verticalAlignment="center">
+									<i-hstack gap={4} verticalAlignment="end">
 										<i-label caption={`${this.firstTokenObject?.symbol || ''} to sell`} font={{ size: '14px' }} class="opacity-50" />
-										<i-label caption={`Balance: ${formatNumber(this.getFirstAvailableBalance())} ${firstSymbol}`} font={{ size: '12px' }} class="opacity-50" margin={{ left: 'auto' }} />
+										<i-label
+											caption={`Balance: ${formatNumber(this.getFirstAvailableBalance())} ${firstSymbol}`}
+											font={{ size: '12px' }}
+											tooltip={{ content: `${formatNumber(this.getFirstAvailableBalance())} ${firstSymbol}`, placement: 'top' }}
+											class="opacity-50 text-overflow"
+											maxWidth="calc(100% - 120px)"
+											margin={{ left: 'auto' }}
+										/>
+										<i-button id="btnMax" caption="Max" enabled={!this.isSellDisabled && new BigNumber(this.getFirstAvailableBalance()).gt(0)} class="btn-os btn-max" width={26} font={{ size: '8px' }} onClick={this.setMaxBalance} />
 									</i-hstack>
 									<i-hstack id="firstInputBox" gap={8} width="100%" height={50} verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 7, right: 7 }}>
 										<i-hstack gap={4} width={100} verticalAlignment="center">
@@ -608,8 +661,8 @@ export class Main extends Module implements PageBlock {
 									</i-hstack>
 								</i-vstack>
 								<i-icon name="arrow-right" fill="#f15e61" width={20} height={20} margin={{ top: 23 }} />
-								<i-vstack gap={4} width="calc(50% - 30px)" height={90} verticalAlignment="center">
-									<i-label caption="You Receive" font={{ size: '14px' }} />
+								<i-vstack gap={4} width="calc(50% - 27px)" height={85} verticalAlignment="center">
+									<i-label caption="You Receive" font={{ size: '14px' }} class="opacity-50" />
 									<i-hstack id="secondInputBox" width="100%" height={50} position="relative" verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 7, right: 7 }}>
 										<i-hstack gap={4} margin={{ right: 8 }} width={100} verticalAlignment="center">
 											<i-image width={20} height={20} url={getTokenIcon(this.secondTokenObject?.address)} fallbackUrl={fallBackUrl} />
@@ -631,7 +684,7 @@ export class Main extends Module implements PageBlock {
 							</i-hstack>
 							<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
 								<i-label caption="Trade Fee" font={{ size: '14px' }} class="opacity-50" />
-								<i-label id="lbFee" caption={`0 ${firstSymbol}`} font={{ size: '14px' }} />
+								<i-label id="lbFee" caption={`0 ${this.secondTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
 							</i-hstack>
 							<i-vstack margin={{ top: 15 }} verticalAlignment="center" horizontalAlignment="center">
 								<i-button
@@ -639,6 +692,7 @@ export class Main extends Module implements PageBlock {
 									caption="Sell Now"
 									enabled={false}
 									class="btn-os btn-sell"
+									margin={{ bottom: 0 }}
 									rightIcon={{ spin: true, visible: false }}
 									onClick={this.onSell}
 								/>

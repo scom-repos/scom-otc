@@ -12,12 +12,10 @@ export {
   isValidNumber,
   toWeiInv,
   numberToBytes32,
-  getParamsFromUrl,
-  uniqWith,
-  getWeekDays,
   compareDate,
   formatPercentNumber,
   downloadJsonFile,
+  truncateAddress,
   SITE_ENV,
 } from './helper';
 

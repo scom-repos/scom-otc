@@ -1,4 +1,4 @@
-import { Wallet, Erc20, BigNumber, ISendTxEventsOptions } from "@ijstech/eth-wallet"; 
+import { Wallet, Erc20, BigNumber, ISendTxEventsOptions } from "@ijstech/eth-wallet";
 import { Contracts } from "@scom/oswap-openswap-contract";
 
 interface ITokenObject {
@@ -23,20 +23,20 @@ export const isTransactionConfirmed = async (txHash: string) => {
 export const registerSendTxEvents = (sendTxEventHandlers: ISendTxEventsOptions) => {
   const wallet = Wallet.getClientInstance();
   wallet.registerSendTxEvents({
-      transactionHash: (error: Error, receipt?: string) => {
-          if (sendTxEventHandlers.transactionHash) {
-              sendTxEventHandlers.transactionHash(error, receipt);
-          }
-      },
-      confirmation: (receipt: any) => {
-          if (sendTxEventHandlers.confirmation) {
-              sendTxEventHandlers.confirmation(receipt);
-          }
-      },
+    transactionHash: (error: Error, receipt?: string) => {
+      if (sendTxEventHandlers.transactionHash) {
+        sendTxEventHandlers.transactionHash(error, receipt);
+      }
+    },
+    confirmation: (receipt: any) => {
+      if (sendTxEventHandlers.confirmation) {
+        sendTxEventHandlers.confirmation(receipt);
+      }
+    },
   })
 }
 
-export async function getERC20Amount(wallet:Wallet, token:string, decimals:number) { //get token amount in that wallet
+export async function getERC20Amount(wallet: Wallet, token: string, decimals: number) {
   let erc20 = new Erc20(wallet, token, decimals);
   return await erc20.balance;
 }

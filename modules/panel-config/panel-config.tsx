@@ -1,10 +1,11 @@
-import { Button, Container, HStack, Panel, customElements, ControlElement, Module, IEventBus, application, Label } from '@ijstech/components';
+import { Button, Container, HStack, Panel, customElements, ControlElement, Module, IEventBus, application, Label, VStack } from '@ijstech/components';
 import { BigNumber } from '@ijstech/eth-wallet';
 import { downloadJsonFile, EventId } from '@modules/global';
 import { getChainId, getNetworkInfo, IOTCQueueConfig, isWalletConnected } from '@modules/store';
 import { Alert } from '@modules/alert';
 import { CampaignConfig } from './campaign';
 import './panel-config.css';
+import Assets from '@modules/assets';
 declare global {
   namespace JSX {
     interface IntrinsicElements {
@@ -24,6 +25,7 @@ export class PanelConfig extends Module {
   private btnExport: Button;
   private $eventBus: IEventBus;
   private campaignConfig: CampaignConfig;
+  private loadingElm: VStack;
   onConfigSave: any;
   onReset: any;
 
@@ -60,6 +62,7 @@ export class PanelConfig extends Module {
 
   private onAddCampaign = async (campaign?: any) => {
     this.campaignConfig = new CampaignConfig();
+    this.campaignConfig.setLoading = (status: boolean) => { this.loadingElm.visible = status };
     this.campaignConfig.data = campaign;
     this.pnlInfoElm.clearInnerHTML();
     this.pnlInfoElm.appendChild(this.campaignConfig);
@@ -131,7 +134,19 @@ export class PanelConfig extends Module {
             <i-hstack width="100%" margin={{ bottom: 10 }} verticalAlignment="center" horizontalAlignment="center">
               <i-label id="lbNetworkName" font={{ color: '#F15E61', size: '20px', bold: true }} />
             </i-hstack>
-            <i-vstack gap={10} verticalAlignment="center" class="main-content">
+            <i-vstack gap={10} verticalAlignment="center" class="main-content" position="relative">
+              <i-vstack id="loadingElm" visible={false} class="i-loading-overlay">
+                <i-vstack class="i-loading-spinner" horizontalAlignment="center" verticalAlignment="center">
+                  <i-icon
+                    class="i-loading-spinner_icon"
+                    image={{ url: Assets.fullPath('img/loading.svg'), width: 36, height: 36 }}
+                  />
+                  <i-label
+                    caption="Loading..." font={{ color: '#FD4A4C', size: '1.5em' }}
+                    class="i-loading-spinner_text"
+                  />
+                </i-vstack>
+              </i-vstack>
               <i-panel id="pnlInfoElm" />
               <i-hstack gap={10} margin={{ top: 20 }} verticalAlignment="center" horizontalAlignment="center" wrap="wrap">
                 <i-button

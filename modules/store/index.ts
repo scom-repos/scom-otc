@@ -140,7 +140,7 @@ export const getTokenList = (chainId: number) => {
 
 export interface TokenBalancesType { [token: string]: string }
 export async function updateAllTokenBalances(): Promise<TokenBalancesType> {
-  const wallet: any = getWallet();
+  const wallet = getWallet();
   let allTokenBalancesMap: TokenBalancesType = {};
   if (!wallet.chainId || !DefaultTokens[wallet.chainId]) return allTokenBalancesMap;
   const tokenList = getTokenList(wallet.chainId);
@@ -277,7 +277,7 @@ export const projectNativeTokenSymbol = () => {
 };
 
 export const getTokenObject = async (address: string, showBalance?: boolean) => {
-  const ERC20Contract = new Contracts.ERC20(Wallet.getClientInstance() as any, address);
+  const ERC20Contract = new Contracts.ERC20(Wallet.getClientInstance(), address);
   const symbol = await ERC20Contract.symbol();
   const name = await ERC20Contract.name();
   const decimals = (await ERC20Contract.decimals()).toFixed();

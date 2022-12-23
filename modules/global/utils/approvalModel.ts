@@ -1,5 +1,4 @@
-import { Wallet, BigNumber } from "@ijstech/eth-wallet";
-import { Contracts } from "@scom/oswap-openswap-contract";
+import { BigNumber } from "@ijstech/eth-wallet";
 import { registerSendTxEvents, approveERC20Max, getERC20Allowance } from './common';
 
 interface ITokenObject {
@@ -125,7 +124,7 @@ export class ERC20ApprovalModel {
   }
 }
 
-export const getERC20ApprovalModelAction = (spenderAddress: string, options: IERC20ApprovalEventOptions) => {
+export const getERC20ApprovalModelAction = async (spenderAddress: string, options: IERC20ApprovalEventOptions) => {
   const approvalOptions = {
     ...options,
     spenderAddress

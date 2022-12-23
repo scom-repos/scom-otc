@@ -201,6 +201,27 @@ Styles.cssRule('.pageblock-otc-queue', {
       '-webkit-box-orient': 'vertical',
       overflow: 'hidden'
     },
+    '.smart-contract--link span': {
+      textDecoration: 'underline',
+      cursor: 'pointer',
+    },
+    'i-progress': {
+      $nest: {
+        '.i-progress_wrapbar': {
+          borderRadius: 15,
+        },
+        '.i-progress_bar.has-bg': {
+          background: '#232B5A',
+        },
+        '.i-progress--active': {
+          $nest: {
+            '.i-progress_wrapbar > .i-progress_overlay': {
+              background: 'linear-gradient(255deg,#f15e61,#b52082) !important'
+            }
+          }
+        }
+      }
+    },
     '.wrapper': {
       width: '100%',
       height: '100%',
@@ -228,6 +249,10 @@ Styles.cssRule('.pageblock-otc-queue', {
           fontWeight: 700,
           borderRadius: 12,
         },
+        '.btn-max': {
+          height: '12px !important',
+          marginBlock: 'auto',
+        },
         '.no-campaign': {
           padding: '3rem 2rem',
           display: 'flex',
@@ -253,7 +278,7 @@ Styles.cssRule('.pageblock-otc-queue', {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          background: '#F15E61',
+          background: 'linear-gradient(255deg,#f15e61,#b52082)',
           borderRadius: 4,
           paddingInline: 4,
           minWidth: 20,

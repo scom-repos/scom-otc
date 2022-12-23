@@ -16,4 +16,4 @@ export {
 
 export { CoreContractAddressesByChainId } from './core/index';
 
-export { IOTCQueueConfig, IOTCQueueData } from './otc-queue/index';
+export * from './otc-queue/index';

@@ -71,15 +71,9 @@ export const formatNumberWithSeparators = (value: number, precision?: number) =>
       outputStr = outputStr.substr(0, 18) + '...'
     }
     return outputStr;
-    // let parts = parseFloat(value.toPrecision(precision)).toString().split(".");
-    // parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    // return parts.join(".");
   }
   else {
     return value.toLocaleString('en-US');
-    // let parts = value.toString().split(".");
-    // parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    // return parts.join(".");
   }
 }
 
@@ -190,34 +184,6 @@ export const numberToBytes32 = (value: any, prefix?: string) => {
   return v;
 }
 
-export const getParamsFromUrl = () => {
-  const startIdx = window.location.href.indexOf("?");
-  const search = window.location.href.substring(startIdx, window.location.href.length)
-  const queryString = search;
-  const urlParams = new URLSearchParams(queryString);
-  return urlParams;
-}
-
-export const uniqWith = (array: any[], compareFn: (cur: any, oth: any) => boolean) => {
-  const unique: any = [];
-  for (const cur of array) {
-    const isDuplicate = unique.some((oth: any) => compareFn(cur, oth));
-    if (!isDuplicate) unique.push(cur);
-  }
-  return unique;
-}
-
-export const getWeekDays = () => {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  let days = [];
-  let day = d;
-  for (let i = 0; i < 7; i++) {
-    days.push(day.setDate(day.getDate() + 1));
-  }
-  return days;
-}
-
 const replacer = (key: string, value: any) => {
   if (key === 'offerIndex') {
     const val = Number(value);
@@ -233,4 +199,10 @@ export const downloadJsonFile = (name: string, obj: any) => {
   const jsonContent = `data:application/json;charset=utf-8,${encodeURIComponent(text)}`;
   link.href = jsonContent;
   link.click();
+}
+
+export const truncateAddress = (address: string) => {
+  let addr: any = address;
+  if (addr === undefined || addr === null) return '';
+  return addr.substr(0, 6) + '...' + addr.substr(-4);
 }
