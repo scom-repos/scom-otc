@@ -63,12 +63,13 @@ export class CampaignConfig extends Module {
 
 	private setupData = async () => {
 		if (this.data) {
-			const { title, pairAddress, offerIndex, direction, logo } = this.data;
+			const { title, description, pairAddress, offerIndex, direction, logo } = this.data;
 			if (this.isInitialized) {
 				if (this.setLoading) {
 					this.setLoading(true);
 				}
 				this.inputName.value = title;
+				this.inputDesc.value = description;
 				this.pairAddress = pairAddress;
 				this.inputPairAddress.value = pairAddress;
 				this.inputOfferIndex.value = `${offerIndex}` || '';
