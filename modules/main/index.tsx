@@ -139,8 +139,8 @@ export class Main extends Module implements PageBlock {
 			selectedProvider = WalletPlugin.MetaMask;
 		}
 		const isValidProvider = Object.values(WalletPlugin).includes(selectedProvider);
-		if (!Wallet.getClientInstance().chainId) {
-			Wallet.getClientInstance().chainId = getDefaultChainId();
+		if (!Wallet.getInstance().chainId) {
+			Wallet.getInstance().chainId = getDefaultChainId();
 		}
 		if (hasWallet() && isValidProvider) {
 			await connectWallet(selectedProvider, {

@@ -89,11 +89,11 @@ export const getWETH = (chainId: number): ITokenObject => {
 };
 
 export function getChainId() {
-  return Wallet.getClientInstance().chainId;
+  return Wallet.getInstance().chainId;
 }
 
 export function getWallet() {
-  return isWalletConnected() ? Wallet.getClientInstance() as any : new Wallet(getNetworkInfo(state.currentChainId || getDefaultChainId()).rpc);
+  return isWalletConnected() ? Wallet.getInstance() as any : new Wallet(getNetworkInfo(state.currentChainId || getDefaultChainId()).rpc);
 }
 
 export function getWalletProvider() {
@@ -277,7 +277,7 @@ export const projectNativeTokenSymbol = () => {
 };
 
 export const getTokenObject = async (address: string, showBalance?: boolean) => {
-  const ERC20Contract = new Contracts.ERC20(Wallet.getClientInstance(), address);
+  const ERC20Contract = new Contracts.ERC20(Wallet.getInstance() as any, address);
   const symbol = await ERC20Contract.symbol();
   const name = await ERC20Contract.name();
   const decimals = (await ERC20Contract.decimals()).toFixed();
@@ -469,12 +469,12 @@ export const getWalletOptions = (): { [key in WalletPlugin]?: any } => {
 }
 
 export function isWalletConnected() {
-  const wallet = Wallet.getClientInstance();
+  const wallet = Wallet.getInstance();
   return wallet.isConnected;
 }
 
 export async function connectWallet(walletPlugin: WalletPlugin, eventHandlers?: { [key: string]: Function }) {
-  let wallet = Wallet.getClientInstance() as any;
+  let wallet = Wallet.getInstance() as any;
   const walletOptions = getWalletOptions();
   let providerOptions = walletOptions[walletPlugin];
   if (!wallet.chainId) {
@@ -487,7 +487,7 @@ export async function connectWallet(walletPlugin: WalletPlugin, eventHandlers?: 
       }
       const connected = !!account;
       if (connected) {
-        localStorage.setItem('walletProvider', Wallet.getClientInstance()?.clientSideProvider?.walletPlugin || '');
+        localStorage.setItem('walletProvider', Wallet.getInstance()?.clientSideProvider?.walletPlugin || '');
         if (wallet.chainId !== getCurrentChainId()) {
           setCurrentChainId(wallet.chainId);
           application.EventBus.dispatch(EventId.chainChanged, wallet.chainId);

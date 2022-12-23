@@ -49,7 +49,7 @@ const getTokens = async (pairAddress: string) => {
   let token0 = '';
   let token1 = '';
   try {
-    const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getClientInstance(), pairAddress);
+    const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getInstance() as any, pairAddress);
     token0 = await pair.token0();
     token1 = await pair.token1();
   } catch { };
@@ -60,7 +60,7 @@ const getTokens = async (pairAddress: string) => {
 }
 
 const getTokenPrice = async (token: string) => { // in USD value
-  let wallet = Wallet.getClientInstance();
+  let wallet = Wallet.getInstance() as any;
   let chainId = wallet.chainId;
   let tokenPrice: string;
 
@@ -341,7 +341,7 @@ const getGroupQueueTraderDataObj = async (pairAddress: string, tokenIn: any, tok
 
 const getOffers = async (params: IOTCQueueConfig) => {
   const { pairAddress, direction, offerIndex } = params;
-  const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getClientInstance(), pairAddress);
+  const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getInstance() as any, pairAddress);
   const tokens = await getTokens(pairAddress);
   let tokenIn: ITokenObject;
   let tokenOut: ITokenObject;
