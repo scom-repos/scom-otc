@@ -12,7 +12,6 @@ export default Styles.style({
       minWidth: '25%',
       maxWidth: '100%',
       width: 455,
-      background: '#192046',
     },
     '.i-modal-close svg': {
       fill: '#F05E61'
