@@ -457,6 +457,7 @@ export class Main extends Module implements PageBlock {
 	private initEmptyUI = async () => {
 		if (!this.noCampaignSection) {
 			this.noCampaignSection = await Panel.create({ height: '100%' });
+			this.noCampaignSection.classList.add('container');
 		}
 		const isConnected = isWalletConnected();
 		const isBtnShown = !this.data && isConnected;
@@ -585,7 +586,7 @@ export class Main extends Module implements PageBlock {
 
 			this.otcQueueElm.clearInnerHTML();
 			this.otcQueueElm.appendChild(
-				<i-panel class="pnl-ofc-queue" padding={{ bottom: 15, top: 15, right: 20, left: 20 }} height="auto">
+				<i-panel class="pnl-ofc-queue container" padding={{ bottom: 15, top: 15, right: 20, left: 20 }} height="auto">
 					<i-hstack>
 						<i-vstack gap={10} width={215} margin={{ right: 20 }} padding={{ right: 20 }} border={{ right: { width: 1.5, style: 'solid', color: '#04081D' } }} position="relative" verticalAlignment="center">
 							<i-label caption={title || ''} font={{ size: '16px', name: 'Montserrat Bold', bold: true }} />

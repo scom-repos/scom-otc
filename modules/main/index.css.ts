@@ -1,6 +1,7 @@
 import { Styles } from '@ijstech/components';
 import Assets from '@modules/assets';
 import { MAX_HEIGHT, MAX_WIDTH } from '@modules/store';
+const Theme = Styles.Theme.ThemeVars;
 
 const colorVar = {
   primaryButton: 'transparent linear-gradient(90deg, #AC1D78 0%, #E04862 100%) 0% 0% no-repeat padding-box',
@@ -303,6 +304,13 @@ Styles.cssRule('.pageblock-otc-queue', {
     },
     '.highlight-box': {
       borderColor: '#E53780 !important'
+    },
+    'i-panel.container': {
+      width: Theme.layout.container.width,
+      maxWidth: Theme.layout.container.maxWidth,
+      overflow: Theme.layout.container.overflow,
+      textAlign: (Theme.layout.container.textAlign as any),
+      margin: '0 auto'
     },
     '.ml-auto': {
       marginLeft: 'auto',
