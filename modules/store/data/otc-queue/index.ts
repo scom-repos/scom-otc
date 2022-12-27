@@ -1,5 +1,5 @@
 import { BigNumber } from "@ijstech/eth-contract";
-import { ITokenObject, QueueType } from "@modules/global";
+import { ICommissionInfo, ITokenObject, QueueType } from "@modules/global";
 
 const OTCQueueAddresses: {
   [chainId: number]: {
@@ -26,6 +26,7 @@ interface IOTCQueueConfig {
   pairAddress: string;
   direction: boolean;
   offerIndex: number;
+  commissions?: ICommissionInfo[];
 }
 
 interface IOTCQueueData {
@@ -56,6 +57,7 @@ interface SwapData {
   toAmount: BigNumber;
   isFromEstimated: boolean;
   offerIndex?: number;
+  commissions: ICommissionInfo[];
 }
 
 interface QueueOfferDetail {

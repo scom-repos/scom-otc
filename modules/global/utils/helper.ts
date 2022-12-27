@@ -185,7 +185,7 @@ export const numberToBytes32 = (value: any, prefix?: string) => {
 }
 
 const replacer = (key: string, value: any) => {
-  if (key === 'offerIndex') {
+  if (['offerIndex','share'].includes(key)) {
     const val = Number(value);
     return isNaN(val) ? value : val;
   }

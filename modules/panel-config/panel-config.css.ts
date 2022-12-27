@@ -109,16 +109,17 @@ Styles.cssRule('.panel-config', {
     'i-checkbox.is-checked .checkmark': {
       backgroundColor: '#f73378'
     },
-    '.cs-upload': {
+    'i-upload.cs-upload': {
       maxWidth: 300,
       minHeight: '150px !important',
-      height: '150px !important',
+      maxHeight: '200px',
+      height: 'auto !important',
       borderRadius: 12,
       padding: 4,
       $nest: {
         '.i-upload-wrapper': {
           margin: 4,
-          height: '100%',
+          height: 'inherit',
           cursor: 'pointer',
           borderColor: '#F15E61'
         },
@@ -137,6 +138,83 @@ Styles.cssRule('.panel-config', {
           objectFit: 'contain',
           width: 300,
           height: 150,
+        },
+      }
+    },
+    '#modalAddCommission': {
+      $nest: {
+        '.modal': {
+          borderRadius: 12,
+        },
+        '.i-modal_header': {
+          marginBottom: '1.5rem',
+          paddingBottom: '0.5rem',
+          borderBottom: `2px solid #F15E61`,
+          color: '#F15E61',
+          fontSize: '1.25rem',
+          fontWeight: 700,
+          $nest: {
+            'span': {
+              color: '#F15E61',
+            },
+          }
+        },
+        '.i-modal_header > i-icon': {
+          fill: `#F15E61 !important`
+        },
+      }
+    },
+    '#tableCommissions': {
+      boxSizing: 'border-box',
+      backdropFilter: 'blur(74px)',
+      color: '#fff',
+      $nest: {
+        '.i-table-header': {
+          background: '#221946',
+        },
+        '.i-table-header>tr>th': {
+          borderBottom: '1px solid #646068'
+        },
+        '.i-table-body>tr>td': {
+          borderBottom: '1px solid #646068',
+        },
+        '.i-table-body>tr:last-child': {
+          borderBottom: 'none',
+          $nest: {
+            '&>td': {
+              borderBottom: 'none',
+            }
+          }
+        },
+        'tr:hover td': {
+          background: 'transparent',
+          color: '#fff'
+        },
+        'table': {
+          $nest: {
+            'thead': {
+              background: '#182045',
+            },
+            'thead th': {
+              fontWeight: 'bold',
+              textTransform: 'capitalize',
+              padding: '1rem',
+              $nest: {
+                '&:first-child': {
+                  textAlign: "left"
+                }
+              }
+            },
+            'tbody tr': {
+              fontSize: '1rem',
+              background: '#182045',
+              $nest: {
+                'td:first-child': {
+                  textAlign: 'left'
+                }
+              }
+            },
+          },
         },
       }
     },

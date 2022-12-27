@@ -1,9 +1,9 @@
-import { Module, Panel, Button, Label, VStack, Container, ControlElement, IEventBus, application, customModule, Modal, Input, moment, HStack } from '@ijstech/components';
+import { Module, Panel, Button, Label, VStack, Container, IEventBus, application, customModule, Modal, Input, moment, HStack } from '@ijstech/components';
 import { BigNumber, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
 import Assets from '@modules/assets';
-import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from '@modules/global';
-import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, setTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueConfig, IOTCQueueData, viewOnExplorerByAddress } from '@modules/store';
-import { executeSell, getHybridRouterAddress, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
+import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress, ICommissionInfo } from '@modules/global';
+import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, setTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress } from '@modules/store';
+import { executeSell, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
 import { Alert } from '@modules/alert';
 import { PanelConfig } from '@modules/panel-config';
 import './index.css';
@@ -106,8 +106,11 @@ export class Main extends Module implements PageBlock {
 		return _data;
 	}
 
-	constructor(parent?: Container, options?: ControlElement) {
+	constructor(parent?: Container, options?: any) {
 		super(parent, options);
+		if (options && options.proxyAddresses) {
+			setProxyAddresses(options.proxyAddresses);
+		}
 		this.$eventBus = application.EventBus;
 		this.registerEvent();
 	}
@@ -139,8 +142,8 @@ export class Main extends Module implements PageBlock {
 			selectedProvider = WalletPlugin.MetaMask;
 		}
 		const isValidProvider = Object.values(WalletPlugin).includes(selectedProvider);
-		if (!Wallet.getInstance().chainId) {
-			Wallet.getInstance().chainId = getDefaultChainId();
+		if (!Wallet.getClientInstance().chainId) {
+			Wallet.getClientInstance().chainId = getDefaultChainId();
 		}
 		if (hasWallet() && isValidProvider) {
 			await connectWallet(selectedProvider, {
@@ -241,8 +244,19 @@ export class Main extends Module implements PageBlock {
 		const tokenBalances = getTokenBalances();
 		const availableBalance = new BigNumber(availableAmount).times(offerPrice).dividedBy(tradeFee);
 		const tokenBalance = new BigNumber(tokenBalances[this.firstTokenObject?.address?.toLowerCase()]);
+		let commissionsAmount = new BigNumber(0);
+		if (this.data?.commissions?.length) {
+			const commissions = (this.data.commissions).map((v: ICommissionInfo) => {
+				return {
+					to: v.walletAddress,
+					amount: tokenBalance.times(v.share)
+				}
+			})
+			commissionsAmount = commissions.map(v => v.amount).reduce((a, b) => a.plus(b));
+		}
+		const maxTokenBalance = tokenBalance.gt(commissionsAmount) ? tokenBalance.minus(commissionsAmount) : new BigNumber(0);
 		const amountIn = new BigNumber(amount).times(offerPrice).dividedBy(tradeFee);
-		return (BigNumber.minimum(availableBalance, tokenBalance, amountIn)).toFixed();		
+		return (BigNumber.minimum(availableBalance, maxTokenBalance, amountIn)).toFixed();
 	}
 
 	private getSecondAvailableBalance = () => {
@@ -348,6 +362,7 @@ export class Main extends Module implements PageBlock {
 			toAmount: new BigNumber(this.secondInput.value),
 			isFromEstimated: false,
 			groupQueueOfferIndex: offerIndex,
+			commissions: this.data.commissions
 		}
 		const { error } = await executeSell(params);
 		if (error) {
@@ -384,7 +399,7 @@ export class Main extends Module implements PageBlock {
 	};
 
 	private initApprovalModelAction = async () => {
-		const spenderAddress = getHybridRouterAddress();
+		const spenderAddress = getProxyAddress();
 		this.approvalModelAction = await getERC20ApprovalModelAction(spenderAddress,
 			{
 				sender: this,
@@ -629,21 +644,21 @@ export class Main extends Module implements PageBlock {
 									{ hStackEndTime }
 								</i-vstack>
 							</i-hstack>
-							<i-hstack gap={16} margin={{ top: 15 }} verticalAlignment="center">
-								<i-vstack gap={4} width="calc(50% - 27px)" height={85} verticalAlignment="center">
+							<i-hstack gap={10} margin={{ top: 15 }} verticalAlignment="center">
+								<i-vstack gap={4} width="calc(50% - 20px)" height={85} verticalAlignment="center">
 									<i-hstack gap={4} verticalAlignment="end">
-										<i-label caption={`${this.firstTokenObject?.symbol || ''} to sell`} font={{ size: '14px' }} class="opacity-50" />
+										<i-label caption={`${this.firstTokenObject?.symbol || ''} to sell`} font={{ size: '12px' }} class="opacity-50" />
 										<i-label
 											caption={`Balance: ${formatNumber(this.getFirstAvailableBalance())} ${firstSymbol}`}
 											font={{ size: '12px' }}
 											tooltip={{ content: `${formatNumber(this.getFirstAvailableBalance())} ${firstSymbol}`, placement: 'top' }}
 											class="opacity-50 text-overflow"
-											maxWidth="calc(100% - 120px)"
+											maxWidth="calc(100% - 110px)"
 											margin={{ left: 'auto' }}
 										/>
 										<i-button id="btnMax" caption="Max" enabled={!this.isSellDisabled && new BigNumber(this.getFirstAvailableBalance()).gt(0)} class="btn-os btn-max" width={26} font={{ size: '8px' }} onClick={this.setMaxBalance} />
 									</i-hstack>
-									<i-hstack id="firstInputBox" gap={8} width="100%" height={50} verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 7, right: 7 }}>
+									<i-hstack id="firstInputBox" gap={8} width="100%" height={50} verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 6, right: 6 }}>
 										<i-hstack gap={4} width={100} verticalAlignment="center">
 											<i-image width={20} height={20} url={getTokenIcon(this.firstTokenObject?.address)} fallbackUrl={fallBackUrl} />
 											<i-label caption={firstSymbol} font={{ size: '16px' }} />
@@ -662,9 +677,9 @@ export class Main extends Module implements PageBlock {
 									</i-hstack>
 								</i-vstack>
 								<i-icon name="arrow-right" fill="#f15e61" width={20} height={20} margin={{ top: 23 }} />
-								<i-vstack gap={4} width="calc(50% - 27px)" height={85} verticalAlignment="center">
-									<i-label caption="You Receive" font={{ size: '14px' }} class="opacity-50" />
-									<i-hstack id="secondInputBox" width="100%" height={50} position="relative" verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 7, right: 7 }}>
+								<i-vstack gap={4} width="calc(50% - 20px)" height={85} verticalAlignment="center">
+									<i-label caption="You Receive" font={{ size: '12px' }} class="opacity-50" />
+									<i-hstack id="secondInputBox" width="100%" height={50} position="relative" verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 6, right: 6 }}>
 										<i-hstack gap={4} margin={{ right: 8 }} width={100} verticalAlignment="center">
 											<i-image width={20} height={20} url={getTokenIcon(this.secondTokenObject?.address)} fallbackUrl={fallBackUrl} />
 											<i-label caption={this.secondTokenObject?.symbol || ''} font={{ size: '16px' }} />
@@ -694,7 +709,7 @@ export class Main extends Module implements PageBlock {
 									enabled={false}
 									class="btn-os btn-sell"
 									margin={{ bottom: 0 }}
-									rightIcon={{ spin: true, visible: false }}
+									rightIcon={{ spin: true, visible: false, fill: '#fff' }}
 									onClick={this.onSell}
 								/>
 							</i-vstack>

@@ -21,7 +21,7 @@ export {
 
 export { parseContractError } from './error';
 
-export { PageBlock } from './pageBlock';
+export { ICommissionInfo, PageBlock } from './interface';
 
 export {
   isTransactionConfirmed,

@@ -89,11 +89,11 @@ export const getWETH = (chainId: number): ITokenObject => {
 };
 
 export function getChainId() {
-  return Wallet.getInstance().chainId;
+  return Wallet.getClientInstance().chainId;
 }
 
 export function getWallet() {
-  return isWalletConnected() ? Wallet.getInstance() as any : new Wallet(getNetworkInfo(state.currentChainId || getDefaultChainId()).rpc);
+  return isWalletConnected() ? Wallet.getClientInstance() as any : new Wallet(getNetworkInfo(state.currentChainId || getDefaultChainId()).rpc);
 }
 
 export function getWalletProvider() {
@@ -181,6 +181,8 @@ export const setTokenBalances = async (value?: TokenBalancesType) => {
   state.tokenBalances = value ? value : await updateAllTokenBalances();
 }
 
+export type ProxyAddresses = { [key: number]: string };
+
 export const state = {
   siteEnv: SITE_ENV.TESTNET,
   currentChainId: 0,
@@ -192,15 +194,32 @@ export const state = {
   userTokens: {} as {[key: string]: ITokenObject[]},
   infuraId: "",
   networkMap: {} as { [key: number]: INetwork },
+  proxyAddresses: {} as ProxyAddresses,
 }
 
-export const setDataFromSCConfig = (networkList: INetwork[], infuraId: string) => {
+export const setDataFromSCConfig = (networkList: INetwork[], infuraId: string, proxyInfo?: ProxyAddresses) => {
+  if (proxyInfo) {
+    setProxyAddresses(proxyInfo)
+  }
   if (infuraId) {
     setInfuraId(infuraId)
   }			
   if (networkList) {
     setNetworkList(networkList)
   }
+}
+
+export const setProxyAddresses = (data: ProxyAddresses) => {
+  state.proxyAddresses = data;
+}
+
+export const getProxyAddress = (chainId?: number) => {
+  const _chainId = chainId || Wallet.getInstance().chainId;
+  const proxyAddresses = state.proxyAddresses;
+  if (proxyAddresses) {
+    return proxyAddresses[_chainId];
+  }
+  return null;
 }
 
 export const getDefaultChainId = () => {
@@ -277,7 +296,7 @@ export const projectNativeTokenSymbol = () => {
 };
 
 export const getTokenObject = async (address: string, showBalance?: boolean) => {
-  const ERC20Contract = new Contracts.ERC20(Wallet.getInstance() as any, address);
+  const ERC20Contract = new Contracts.ERC20(Wallet.getClientInstance(), address);
   const symbol = await ERC20Contract.symbol();
   const name = await ERC20Contract.name();
   const decimals = (await ERC20Contract.decimals()).toFixed();
@@ -469,12 +488,12 @@ export const getWalletOptions = (): { [key in WalletPlugin]?: any } => {
 }
 
 export function isWalletConnected() {
-  const wallet = Wallet.getInstance();
+  const wallet = Wallet.getClientInstance();
   return wallet.isConnected;
 }
 
 export async function connectWallet(walletPlugin: WalletPlugin, eventHandlers?: { [key: string]: Function }) {
-  let wallet = Wallet.getInstance() as any;
+  let wallet = Wallet.getClientInstance() as any;
   const walletOptions = getWalletOptions();
   let providerOptions = walletOptions[walletPlugin];
   if (!wallet.chainId) {
@@ -487,7 +506,7 @@ export async function connectWallet(walletPlugin: WalletPlugin, eventHandlers?: 
       }
       const connected = !!account;
       if (connected) {
-        localStorage.setItem('walletProvider', Wallet.getInstance()?.clientSideProvider?.walletPlugin || '');
+        localStorage.setItem('walletProvider', Wallet.getClientInstance()?.clientSideProvider?.walletPlugin || '');
         if (wallet.chainId !== getCurrentChainId()) {
           setCurrentChainId(wallet.chainId);
           application.EventBus.dispatch(EventId.chainChanged, wallet.chainId);
