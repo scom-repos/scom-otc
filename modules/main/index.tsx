@@ -619,7 +619,7 @@ export class Main extends Module implements PageBlock {
 								<i-label caption="Smart Contract" class="opacity-50" font={{ size: '8px', color: '#FFF' }} />
 								<i-label caption={truncateAddress(pairAddress)} font={{ size: '10px', color: '#FFF' }} class="smart-contract--link" onClick={() => viewOnExplorerByAddress(chainId, pairAddress)} />
 							</i-vstack>
-							<i-label caption="Terms & Condition" display="block" margin={{ top: 'auto' }} class="opacity-50" font={{ size: '10px', color: '#FFF' }} />
+							<i-label caption="Terms & Condition" link={{ href: 'https://docs.scom.dev/' }} display="block" margin={{ top: 'auto' }} class="opacity-50" font={{ size: '10px', color: '#FFF' }} />
 						</i-vstack>
 						<i-vstack verticalAlignment="center">
 							<i-vstack gap={4} verticalAlignment="center">
