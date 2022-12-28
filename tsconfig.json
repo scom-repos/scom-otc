@@ -11,7 +11,8 @@
         "declaration": false,        
         "baseUrl": ".",
         "paths": {
-            "@modules/*":["modules/*"]
+            "@modules/*":["modules/*"],
+            "@scom/commission-proxy": ["repos/commission-proxy"]
         }
     },
     "include": ["modules/**/*.ts","modules/**/*.tsx"],

@@ -2,6 +2,7 @@ import {
   toWeiInv,
   ITokenObject,
   numberToBytes32,
+  ICommissionInfo,
 } from '@modules/global';
 import { BigNumber, TransactionReceipt, Utils, Wallet } from '@ijstech/eth-wallet';
 import {
@@ -18,8 +19,10 @@ import {
   getChainNativeToken,
   QueueOfferDetail,
   SwapData,
+  getProxyAddress,
 } from '@modules/store';
 import { Contracts } from '@scom/oswap-openswap-contract';
+import { Contracts as ProxyContracts } from '@scom/commission-proxy';
 import { Contracts as ChainLinkContracts } from '@scom/oswap-chainlink-contract';
 import { moment } from '@ijstech/components';
 
@@ -49,7 +52,7 @@ const getTokens = async (pairAddress: string) => {
   let token0 = '';
   let token1 = '';
   try {
-    const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getInstance() as any, pairAddress);
+    const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getClientInstance(), pairAddress);
     token0 = await pair.token0();
     token1 = await pair.token1();
   } catch { };
@@ -60,7 +63,7 @@ const getTokens = async (pairAddress: string) => {
 }
 
 const getTokenPrice = async (token: string) => { // in USD value
-  let wallet = Wallet.getInstance() as any;
+  let wallet = Wallet.getClientInstance();
   let chainId = wallet.chainId;
   let tokenPrice: string;
 
@@ -134,68 +137,75 @@ const mapTokenObjectSet = (obj: any) => {
   return obj;
 }
 
-const hybridTradeExactIn = async (wallet: Wallet, bestSmartRoute: any[], path: any[], pairs: string[], amountIn: string, amountOutMin: string, toAddress: string, deadline: number, feeOnTransfer: boolean, data: string, callback?: any, confirmationCallback?: any) => {
+const hybridTradeExactIn = async (wallet: Wallet, path: any[], pairs: string[], amountIn: string, amountOutMin: string, toAddress: string, deadline: number, data: string, commissions: ICommissionInfo[], callback?: any, confirmationCallback?: any) => {
   if (path.length < 2) {
     return null;
   }
   let tokenIn = path[0];
   let tokenOut = path[path.length - 1];
-  let hybridRouterAddress = getHybridRouterAddress();
-  let hybridRouter = new Contracts.OSWAP_HybridRouter2(wallet as any, hybridRouterAddress);
-
-  let receipt;
+  const hybridRouterAddress = getHybridRouterAddress();
+  const hybridRouter = new Contracts.OSWAP_HybridRouter2(wallet, hybridRouterAddress);
+  const proxyAddress = getProxyAddress();
+  const proxy = new ProxyContracts.Proxy(wallet, proxyAddress);
+  const amount = tokenIn.address ? Utils.toDecimals(amountIn, tokenIn.decimals).dp(0) : Utils.toDecimals(amountIn).dp(0);
+  const _amountOutMin = Utils.toDecimals(amountOutMin, tokenOut.decimals).dp(0);
+  const _commissions = (commissions || []).map(v => {
+    return {
+      to: v.walletAddress,
+      amount: amount.times(v.share)
+    }
+  });
+  const commissionsAmount = _commissions.length ? _commissions.map(v => v.amount).reduce((a, b) => a.plus(b)) : new BigNumber(0);
+  let receipt: any;
   if (!tokenIn.address) {
-    let params = {
-      amountOutMin: Utils.toDecimals(amountOutMin, tokenOut.decimals).dp(0),
+    const params = {
+      amountOutMin: _amountOutMin,
       pair: pairs,
       to: toAddress,
       deadline,
       data
     };
-    if (feeOnTransfer) {
-      receipt = await hybridRouter.swapExactETHForTokensSupportingFeeOnTransferTokens(params, Utils.toDecimals(amountIn).dp(0))
-    }
-    else {
-      receipt = await hybridRouter.swapExactETHForTokens(params, Utils.toDecimals(amountIn).dp(0))
-    }
-  } else if (!tokenOut.address) {
-    let params = {
-      amountIn: Utils.toDecimals(amountIn, tokenIn.decimals).dp(0),
-      amountOutMin: Utils.toDecimals(amountOutMin, tokenOut.decimals).dp(0),
+    const txData = await hybridRouter.swapExactETHForTokens.txData(params, amount);
+    await proxy.ethIn({
+      target: hybridRouterAddress,
+      commissions: _commissions,
+      data: txData
+    });
+  } else {
+    const tokensIn = {
+      token: tokenIn.address,
+      amount: amount.plus(commissionsAmount),
+      directTransfer: false,
+      commissions: _commissions
+    };
+    const params = {
+      amountIn: amount,
+      amountOutMin: _amountOutMin,
       pair: pairs,
       to: toAddress,
       deadline,
       data
     };
-    if (feeOnTransfer) {
-      receipt = await hybridRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(params)
+    let txData: string;
+    if (!tokenOut.address) {
+      txData = await hybridRouter.swapExactTokensForETH.txData(params);
+    } else {
+      txData = await hybridRouter.swapExactTokensForTokens.txData({
+        ...params,
+        tokenIn: tokenIn.address
+      });
     }
-    else {
-      receipt = await hybridRouter.swapExactTokensForETH(params)
-    }
-  }
-  else {
-    let params = {
-      amountIn: Utils.toDecimals(amountIn, tokenIn.decimals).dp(0),
-      amountOutMin: Utils.toDecimals(amountOutMin, tokenOut.decimals).dp(0),
-      pair: pairs,
-      tokenIn: tokenIn.address,
-      to: toAddress,
-      deadline,
-      data
-    };
-    if (feeOnTransfer) {
-      receipt = await hybridRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(params)
-    }
-    else {
-      receipt = await hybridRouter.swapExactTokensForTokens(params)
-    }
+    receipt = await proxy.tokenIn({
+      target: hybridRouterAddress,
+      tokensIn,
+      data: txData
+    });
   }
   return receipt;
 }
 
 const getGroupQueueItemsForTrader = async (pairAddress: string, tokenIn: any, tokenOut: any): Promise<QueueOfferDetail[]> => {
-  let wallet = getWallet() as any;
+  let wallet = getWallet();
   let chainId = getChainId();
   const nativeToken = getChainNativeToken(chainId);
   var direction = new BigNumber(tokenIn.address.toLowerCase()).lt(tokenOut.address.toLowerCase());
@@ -341,7 +351,7 @@ const getGroupQueueTraderDataObj = async (pairAddress: string, tokenIn: any, tok
 
 const getOffers = async (params: IOTCQueueConfig) => {
   const { pairAddress, direction, offerIndex } = params;
-  const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getInstance() as any, pairAddress);
+  const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getClientInstance(), pairAddress);
   const tokens = await getTokens(pairAddress);
   let tokenIn: ITokenObject;
   let tokenOut: ITokenObject;
@@ -382,7 +392,7 @@ const executeSell: (swapData: SwapData) => Promise<{
   error: Record<string, string> | null;
 }> = async (swapData: SwapData) => {
   let receipt: TransactionReceipt | null = null;
-  const wallet = getWallet() as any;
+  const wallet = getWallet();
   try {
     const toAddress = wallet.account.address;
     const slippageTolerance = getSlippageTolerance();
@@ -408,15 +418,14 @@ const executeSell: (swapData: SwapData) => Promise<{
 
       receipt = await hybridTradeExactIn(
         wallet,
-        swapData.bestSmartRoute,
         swapData.routeTokens,
         swapData.pairs,
         swapData.fromAmount.toString(),
         amountOutMin.toString(),
         toAddress,
         transactionDeadline,
-        false,
-        data
+        data,
+        swapData.commissions,
       );
     }
   } catch (error) {
