@@ -38,23 +38,7 @@ export const ABIKeys = {
     ConfigStore: 'OSWAP_ConfigStore',
     PeggedOracleFactory: 'OSWAP_PeggedOracleFactory',
     PeggedOraclePair: 'OSWAP_PeggedOraclePair',
-    PeggedOracleLiquidityProvider: 'OSWAP_PeggedOracleLiquidityProvider',
-
-
-    //Old
-    // OracleFactory: 'OAXDEX_OracleFactory',
-    //RangeFactory: 'OAXDEX_RangeFactory',
-    //RestrictedFactory: 'OAXDEX_RestrictedFactory',
-    //OraclePair: 'OAXDEX_OraclePair',
-    //RangePair: 'OAXDEX_RangePair',
-    //RestrictedPair: 'OAXDEX_RestrictedPair',
-    // OracleLiquidityProvider: 'OAXDEX_OracleLiquidityProvider',
-    //RangeLiquidityProvider: 'OAXDEX_RangeLiquidityProvider',
-    //RestrictedLiquidityProvider: 'OAXDEX_RestrictedLiquidityProvider',
-    //ConfigStore: 'OAXDEX_ConfigStore',
-    //OracleAdaptor: 'OAXDEX_OracleAdaptor',
-    // HybridRouterRegistry: 'OAXDEX_HybridRouterRegistry',
-    // HybridRouter: 'OAXDEX_HybridRouter2'
+    PeggedOracleLiquidityProvider: 'OSWAP_PeggedOracleLiquidityProvider'
 };
 
 export const enum EventId {

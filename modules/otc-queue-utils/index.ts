@@ -26,7 +26,6 @@ import { Contracts as ProxyContracts } from '@scom/commission-proxy';
 import { Contracts as ChainLinkContracts } from '@scom/oswap-chainlink-contract';
 import { moment } from '@ijstech/components';
 
-const TOTAL_AMOUNT = new BigNumber(1000000);
 const TRADE_FEE = { fee: '20', base: '1000' };
 
 const getHybridRouterAddress = (): string => {
@@ -52,7 +51,7 @@ const getTokens = async (pairAddress: string) => {
   let token0 = '';
   let token1 = '';
   try {
-    const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getClientInstance(), pairAddress);
+    const pair = new Contracts.OSWAP_OtcPair(Wallet.getClientInstance(), pairAddress);
     token0 = await pair.token0();
     token1 = await pair.token1();
   } catch { };
@@ -210,7 +209,7 @@ const getGroupQueueItemsForTrader = async (pairAddress: string, tokenIn: any, to
   const nativeToken = getChainNativeToken(chainId);
   var direction = new BigNumber(tokenIn.address.toLowerCase()).lt(tokenOut.address.toLowerCase());
   let trader = wallet.address;
-  const pairContract = new Contracts.OSWAP_RestrictedPair(wallet, pairAddress);
+  const pairContract = new Contracts.OSWAP_OtcPair(wallet, pairAddress);
   let traderOffer = await pairContract.getTraderOffer({ trader, direction, start: 0, length: 100 });
   let amounts = traderOffer.amountAndPrice.slice(0, traderOffer.amountAndPrice.length / 2);
   let prices = traderOffer.amountAndPrice.slice(traderOffer.amountAndPrice.length / 2, traderOffer.amountAndPrice.length);
@@ -255,7 +254,7 @@ const getGroupQueueItemsForAllowAll = async (pairAddress: string, tokenIn: any, 
   let chainId = getChainId();
   const nativeToken = getChainNativeToken(chainId);
   var direction = new BigNumber(tokenIn.address.toLowerCase()).lt(tokenOut.address.toLowerCase());
-  const oracleContract = new Contracts.OSWAP_RestrictedPair(wallet, pairAddress);
+  const oracleContract = new Contracts.OSWAP_OtcPair(wallet, pairAddress);
   let allOffer = await oracleContract.getOffers({ direction, start: 0, length: 100 });
   let amounts = allOffer.amountAndPrice.slice(0, allOffer.amountAndPrice.length / 2);
   let prices = allOffer.amountAndPrice.slice(allOffer.amountAndPrice.length / 2, allOffer.amountAndPrice.length);
@@ -297,7 +296,7 @@ const getGroupQueueItemsForAllowAll = async (pairAddress: string, tokenIn: any, 
 
 const getGroupQueueAllocation = async (traderAddress: string, offerIndex: number, pairAddress: string, tokenIn: any, tokenOut: any) => {
   let direction = new BigNumber(tokenIn.address.toLowerCase()).lt(tokenOut.address.toLowerCase());
-  return await new Contracts.OSWAP_RestrictedPair(getWallet() as any, pairAddress).traderAllocation({ param1: direction, param2: offerIndex, param3: traderAddress });
+  return await new Contracts.OSWAP_OtcPair(getWallet() as any, pairAddress).traderAllocation({ param1: direction, param2: offerIndex, param3: traderAddress });
 };
 
 const getGroupQueueTraderDataObj = async (pairAddress: string, tokenIn: any, tokenOut: any, amountIn: string, offerIndex?: string) => {
@@ -351,7 +350,7 @@ const getGroupQueueTraderDataObj = async (pairAddress: string, tokenIn: any, tok
 
 const getOffers = async (params: IOTCQueueConfig) => {
   const { pairAddress, direction, offerIndex } = params;
-  const pair = new Contracts.OSWAP_RestrictedPair(Wallet.getClientInstance(), pairAddress);
+  const pair = new Contracts.OSWAP_OtcPair(Wallet.getClientInstance(), pairAddress);
   const tokens = await getTokens(pairAddress);
   let tokenIn: ITokenObject;
   let tokenOut: ITokenObject;
@@ -368,13 +367,14 @@ const getOffers = async (params: IOTCQueueConfig) => {
     param2: offerIndex
   });
 
+  const originalAmount = new BigNumber(offer.originalAmount).shiftedBy(-Number(tokenIn.decimals));
   const restrictedPrice = new BigNumber(offer.restrictedPrice).shiftedBy(-18).toFixed();
   const amount = new BigNumber(offer.amount).shiftedBy(-Number(tokenIn.decimals));
   const tradeFee = new BigNumber(TRADE_FEE.base).minus(TRADE_FEE.fee).div(TRADE_FEE.base).toFixed();
   return {
     pairAddress,
-    totalAmount: TOTAL_AMOUNT,
-    availableAmount: TOTAL_AMOUNT.minus(amount),
+    totalAmount: originalAmount,
+    availableAmount: amount,
     tradeFee,
     offerIndex,
     ...offer,

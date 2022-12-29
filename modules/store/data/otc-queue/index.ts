@@ -11,11 +11,11 @@ const OTCQueueAddresses: {
   }
 } = {
   97: {
-    RestrictedFactory: "0x7523d336D559eD709aB1F7a2899E49e41Bf77e38",
-    ConfigStore: "0x40d559Ee67cEFfFbE8867299fe63d0E3cF35218f",
-    RestrictedPairCreator: "0x1aC6734690C6757a79bf27FF527589551c9524F7",
-    RestrictedLiquidityProvider: "0x361e297607aCB9A92eb2211f9e58F26e366A6a4C",
-    VotingExecutor4: "0x318dbd1D987071A6f393BdF64FF150098Dd0f664"
+    RestrictedFactory: "0x1890472CEb3a1977BC0ab036Cd5ddB1c96953438",
+    ConfigStore: "0x5fD4d3175B02bFC1d5468744379f59A374399599",
+    RestrictedPairCreator: "0xe6BC80a251964248bce8980ca94EfABb22Df92c2",
+    RestrictedLiquidityProvider: "0xD996aB223375C371d02F5A4a07F7587aC40a3b01",
+    VotingExecutor4: "0xFe4EeEf531C06795Ef73100e64D8839588047F0d"
   }
 }
 
