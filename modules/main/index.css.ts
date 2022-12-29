@@ -2,6 +2,11 @@ import { Styles } from '@ijstech/components';
 import Assets from '@modules/assets';
 import { MAX_HEIGHT, MAX_WIDTH } from '@modules/store';
 const Theme = Styles.Theme.ThemeVars;
+Styles.Theme.defaultTheme.background.main = '#0c1234';
+Styles.Theme.defaultTheme.text.primary = '#fff';
+Styles.Theme.defaultTheme.background.modal = '#0c1234';
+Styles.Theme.defaultTheme.layout.container.textAlign = 'left';
+Styles.Theme.applyTheme(Styles.Theme.defaultTheme);
 
 const colorVar = {
   primaryButton: 'transparent linear-gradient(90deg, #AC1D78 0%, #E04862 100%) 0% 0% no-repeat padding-box',
@@ -226,7 +231,6 @@ Styles.cssRule('.pageblock-otc-queue', {
     '.wrapper': {
       width: '100%',
       height: '100%',
-      maxWidth: MAX_WIDTH,
       maxHeight: MAX_HEIGHT,
       $nest: {
         '.bg-color': {

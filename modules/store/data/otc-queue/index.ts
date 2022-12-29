@@ -39,7 +39,8 @@ interface IOTCQueueData {
   amount: BigNumber;
   availableAmount: BigNumber;
   receiving: BigNumber;
-  offerPrice: string | number;
+  restrictedPrice: string;
+  offerPrice: string;
   offerIndex: number;
   startDate: number;
   expire: number;

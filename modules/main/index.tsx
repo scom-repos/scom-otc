@@ -73,6 +73,12 @@ export class Main extends Module implements PageBlock {
 		this.pnlConfig.visible = true;
 	}
 
+	async preview() {
+		if (this.pnlConfig) {
+			this.pnlConfig.onPreview();
+		}
+	}
+
 	async confirm() {
 		if (this.pnlConfig) {
 			this.pnlConfig.onConfirm();
@@ -288,7 +294,7 @@ export class Main extends Module implements PageBlock {
 		if (!this.otcQueueInfo) return;
 		const info = this.otcQueueInfo;
 		const { offerPrice, tradeFee } = info;
-		const symbol = this.secondTokenObject?.symbol || '';
+		const symbol = this.firstTokenObject?.symbol || '';
 		const inputVal = new BigNumber(this.firstInput.value).dividedBy(offerPrice).times(tradeFee);
 		if (inputVal.isNaN()) {
 			this.lbFee.caption = `0 ${symbol}`;
@@ -308,7 +314,7 @@ export class Main extends Module implements PageBlock {
 		if (!this.otcQueueInfo) return;
 		const info = this.otcQueueInfo || {} as any;
 		const { offerPrice, tradeFee } = info;
-		const symbol = this.secondTokenObject?.symbol || '';
+		const symbol = this.firstTokenObject?.symbol || '';
 		const inputVal = new BigNumber(this.secondInput.value).multipliedBy(offerPrice).dividedBy(tradeFee);
 		if (inputVal.isNaN()) {
 			this.firstInput.value = '';
@@ -531,11 +537,11 @@ export class Main extends Module implements PageBlock {
 	private renderOTCQueueCampaign = async () => {
 		if (this.otcQueueInfo) {
 			this.otcQueueElm.clearInnerHTML();
-			const { pairAddress, totalAmount, amount, offerPrice, startDate, expire } = this.otcQueueInfo;
+			const { pairAddress, totalAmount, amount, restrictedPrice, startDate, expire } = this.otcQueueInfo;
 			const { title, description, logo } = this.data;
 			const chainId = getChainId();
 			const firstSymbol = this.firstTokenObject?.symbol || '';
-			const usd = this.tokenPrice ? new BigNumber(offerPrice).times(this.tokenPrice).toFixed() : '0';
+			const usd = this.tokenPrice ? new BigNumber(restrictedPrice).times(this.tokenPrice).toFixed() : '0';
 
 			const hStackTimer = await HStack.create({ gap: 8, verticalAlignment: 'center' });
 			const lbTimer = await Label.create({ caption: 'Starts In', font: { size: '16px' } });
@@ -602,7 +608,7 @@ export class Main extends Module implements PageBlock {
 			this.otcQueueElm.clearInnerHTML();
 			this.otcQueueElm.appendChild(
 				<i-panel class="pnl-ofc-queue container" padding={{ bottom: 15, top: 15, right: 20, left: 20 }} height="auto">
-					<i-hstack>
+					<i-hstack horizontalAlignment="center">
 						<i-vstack gap={10} width={215} margin={{ right: 20 }} padding={{ right: 20 }} border={{ right: { width: 1.5, style: 'solid', color: '#04081D' } }} position="relative" verticalAlignment="center">
 							<i-label caption={title || ''} font={{ size: '16px', name: 'Montserrat Bold', bold: true }} />
 							{ 
@@ -625,7 +631,7 @@ export class Main extends Module implements PageBlock {
 							<i-vstack gap={4} verticalAlignment="center">
 								<i-label caption="Offer to Buy" font={{ size: '12px' }} class="opacity-50" />
 								<i-hstack gap={4} verticalAlignment="end">
-									<i-label caption={`${formatNumber(offerPrice)} ${this.secondTokenObject?.symbol || ''}`} font={{ size: '24px', name: 'Montserrat Bold' }} />
+									<i-label caption={`${formatNumber(restrictedPrice)} ${this.secondTokenObject?.symbol || ''}`} font={{ size: '24px', name: 'Montserrat Bold' }} />
 									<i-label caption={`~ ${formatNumber(usd)} USD`} font={{ size: '12px' }} lineHeight="22px" class="opacity-50" />
 								</i-hstack>
 							</i-vstack>
@@ -700,7 +706,7 @@ export class Main extends Module implements PageBlock {
 							</i-hstack>
 							<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
 								<i-label caption="Trade Fee" font={{ size: '14px' }} class="opacity-50" />
-								<i-label id="lbFee" caption={`0 ${this.secondTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
+								<i-label id="lbFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
 							</i-hstack>
 							<i-vstack margin={{ top: 15 }} verticalAlignment="center" horizontalAlignment="center">
 								<i-button
@@ -751,7 +757,7 @@ export class Main extends Module implements PageBlock {
 	render() {
 		return (
 			<i-panel id="otcQueueComponent" class="pageblock-otc-queue" minHeight={200}>
-				<i-panel id="otcQueueLayout" class="otc-queue-layout" width={MAX_WIDTH} height={MAX_HEIGHT}>
+				<i-panel id="otcQueueLayout" class="otc-queue-layout" width="100%" height={MAX_HEIGHT}>
 					<i-vstack id="loadingElm" class="i-loading-overlay">
 						<i-vstack class="i-loading-spinner" horizontalAlignment="center" verticalAlignment="center">
 							<i-icon

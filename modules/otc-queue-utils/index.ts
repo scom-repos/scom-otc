@@ -382,6 +382,7 @@ const getOffers = async (params: IOTCQueueConfig) => {
     expire: new BigNumber(offer.expire).multipliedBy(1000).toNumber(),
     amount,
     offerPrice: toWeiInv(restrictedPrice).shiftedBy(-18).toFixed(),
+    restrictedPrice: restrictedPrice,
     tokenIn,
     tokenOut,
   };

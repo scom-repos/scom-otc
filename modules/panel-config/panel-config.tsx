@@ -109,6 +109,11 @@ export class PanelConfig extends Module {
     }
   }
 
+  onPreview() {
+    const campaign = this.getCampaignData();
+    this.onConfigSave(campaign);
+  }
+
   onConfirm() {
     this.onSave();
   }
