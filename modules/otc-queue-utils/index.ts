@@ -151,7 +151,7 @@ const hybridTradeExactIn = async (wallet: Wallet, path: any[], pairs: string[], 
   const _commissions = (commissions || []).map(v => {
     return {
       to: v.walletAddress,
-      amount: amount.times(v.share)
+      amount: amount.times(v.share).dp(0)
     }
   });
   const commissionsAmount = _commissions.length ? _commissions.map(v => v.amount).reduce((a, b) => a.plus(b)) : new BigNumber(0);
@@ -406,8 +406,8 @@ const executeSell: (swapData: SwapData) => Promise<{
         swapData.pairs[0],
         swapData.routeTokens[0],
         swapData.routeTokens[1],
-        swapData.fromAmount.toString(),
-        swapData.offerIndex?.toString()
+        swapData.fromAmount.toFixed(),
+        swapData.offerIndex?.toFixed()
       );
       if (!obj || !obj.data)
         return {
@@ -421,8 +421,8 @@ const executeSell: (swapData: SwapData) => Promise<{
         wallet,
         swapData.routeTokens,
         swapData.pairs,
-        swapData.fromAmount.toString(),
-        amountOutMin.toString(),
+        swapData.fromAmount.toFixed(),
+        amountOutMin.toFixed(),
         toAddress,
         transactionDeadline,
         data,
