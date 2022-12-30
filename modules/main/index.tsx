@@ -2,7 +2,7 @@ import { Module, Panel, Button, Label, VStack, Container, IEventBus, application
 import { BigNumber, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
 import Assets from '@modules/assets';
 import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress, ICommissionInfo } from '@modules/global';
-import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, setTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress } from '@modules/store';
+import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances } from '@modules/store';
 import { executeSell, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
 import { Alert } from '@modules/alert';
 import { PanelConfig } from '@modules/panel-config';
@@ -169,14 +169,16 @@ export class Main extends Module implements PageBlock {
 		}
 		try {
 			this.otcQueueInfo = await getOffers(this.data);
+			await updateTokenBalances([this.otcQueueInfo.tokenIn, this.otcQueueInfo.tokenOut]);
 			this.firstTokenObject = this.otcQueueInfo.tokenIn;
 			this.secondTokenObject = this.otcQueueInfo.tokenOut;
-			this.tokenPrice = await getTokenPrice(this.firstTokenObject?.address);
+			this.tokenPrice = await getTokenPrice(this.secondTokenObject?.address);
 			this.renderOTCQueueCampaign();
 			if (this.firstTokenObject && this.firstTokenObject.symbol !== ChainNativeTokenByChainId[getChainId()]?.symbol) {
 				await this.initApprovalModelAction();
 			}
-		} catch {
+		} catch(err) {
+			console.log('err', err);
 			this.renderEmpty();
 		}
 		if (!hideLoading && this.loadingElm) {
@@ -446,7 +448,7 @@ export class Main extends Module implements PageBlock {
 					this.updateInput(false);
 				},
 				onPaid: async (data?: any) => {
-					await setTokenBalances();
+					await updateTokenBalances([this.firstTokenObject, this.secondTokenObject]); 
 					await this.onSetupPage(isWalletConnected(), true);
 					this.firstInput.value = '';
 					this.secondInput.value = '';
@@ -640,7 +642,7 @@ export class Main extends Module implements PageBlock {
 									<i-label caption="Offer Availability" font={{ size: '12px' }} class="opacity-50" />
 									<i-hstack gap={4}>
 										<i-label caption={formatNumber(amount)} font={{ size: '12px', name: 'Montserrat Bold' }} />
-										<i-label caption={`/ ${formatNumber(totalAmount)} ${this.firstTokenObject?.symbol || ''}`} class="opacity-50" font={{ size: '12px', name: 'Montserrat Bold' }} />
+										<i-label caption={`/ ${formatNumber(totalAmount)} ${this.secondTokenObject?.symbol || ''}`} class="opacity-50" font={{ size: '12px', name: 'Montserrat Bold' }} />
 									</i-hstack>
 									<i-progress width="100%" height="auto" percent={amount.dividedBy(totalAmount).multipliedBy(100).toNumber()} strokeWidth={6} strokeColor="#F15E61" />
 								</i-vstack>

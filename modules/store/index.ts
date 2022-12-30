@@ -139,24 +139,30 @@ export const getTokenList = (chainId: number) => {
 }
 
 export interface TokenBalancesType { [token: string]: string }
-export async function updateAllTokenBalances(): Promise<TokenBalancesType> {
+
+export async function updateTokenBalances(tokenList: ITokenObject[]): Promise<TokenBalancesType> {
   const wallet = getWallet();
   let allTokenBalancesMap: TokenBalancesType = {};
   if (!wallet.chainId || !DefaultTokens[wallet.chainId]) return allTokenBalancesMap;
-  const tokenList = getTokenList(wallet.chainId);
-  let promises: Promise<void>[] = []
+  const nativeToken = getChainNativeToken(wallet.chainId);
+  let promises: Promise<void>[] = [];
+  promises.push(new Promise<void>(async (resolve, reject) => {
+    try {
+      let balance = (await getWallet().balance).toFixed();
+      allTokenBalancesMap[nativeToken.symbol] = balance;
+      resolve();
+    } catch (error) {
+      reject(error);
+    }
+  }))
   promises.push(...tokenList.map(async (token, index) => {
       try {
         if (token.address) {
           let balance = (await getERC20Amount(wallet, token.address, token.decimals)).toFixed()
           allTokenBalancesMap[token.address.toLowerCase()] = balance;
-        } else {
-          let balance = (await getWallet().balance).toFixed();
-          allTokenBalancesMap[token.symbol] = balance;
         }
       } catch (error) {}
   }));
-  
   await Promise.all(promises);
   state.tokenBalances = allTokenBalancesMap;
   return allTokenBalancesMap;
@@ -175,10 +181,6 @@ export const getTokenBalance = (token: ITokenObject): string => {
     balance = state.tokenBalances[token.symbol];
   }
   return balance;
-}
-
-export const setTokenBalances = async (value?: TokenBalancesType) => {
-  state.tokenBalances = value ? value : await updateAllTokenBalances();
 }
 
 export type ProxyAddresses = { [key: number]: string };
@@ -511,7 +513,6 @@ export async function connectWallet(walletPlugin: WalletPlugin, eventHandlers?: 
           setCurrentChainId(wallet.chainId);
           application.EventBus.dispatch(EventId.chainChanged, wallet.chainId);
         }
-        await updateAllTokenBalances();
       }
       application.EventBus.dispatch(EventId.IsWalletConnected, connected);
     },
@@ -522,7 +523,6 @@ export async function connectWallet(walletPlugin: WalletPlugin, eventHandlers?: 
         eventHandlers.chainChanged(chainId);
       }
       setCurrentChainId(chainId);
-      await updateAllTokenBalances();
       application.EventBus.dispatch(EventId.chainChanged, chainId);
     }
   }, providerOptions)
