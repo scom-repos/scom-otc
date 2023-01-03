@@ -371,17 +371,17 @@ const getOffers = async (params: IOTCQueueConfig) => {
   const restrictedPrice = new BigNumber(offer.restrictedPrice).shiftedBy(-18).toFixed();
   const amount = new BigNumber(offer.amount).shiftedBy(-Number(tokenIn.decimals));
   const tradeFee = new BigNumber(TRADE_FEE.base).minus(TRADE_FEE.fee).div(TRADE_FEE.base).toFixed();
+  const offerPrice = toWeiInv(restrictedPrice).shiftedBy(-18).toFixed();
   return {
     pairAddress,
-    totalAmount: originalAmount,
-    availableAmount: amount,
+    totalAmount: new BigNumber(originalAmount).times(offerPrice).dividedBy(tradeFee),
+    availableAmount: new BigNumber(amount).times(offerPrice).dividedBy(tradeFee),
     tradeFee,
     offerIndex,
     ...offer,
     startDate: new BigNumber(offer.startDate).multipliedBy(1000).toNumber(),
     expire: new BigNumber(offer.expire).multipliedBy(1000).toNumber(),
-    amount,
-    offerPrice: toWeiInv(restrictedPrice).shiftedBy(-18).toFixed(),
+    offerPrice,
     restrictedPrice: restrictedPrice,
     tokenIn,
     tokenOut,

@@ -248,7 +248,7 @@ export class Main extends Module implements PageBlock {
 		if (!this.otcQueueInfo || this.isSellDisabled) {
 			return '0';
 		}
-		const { availableAmount, amount, offerPrice, tradeFee } = this.otcQueueInfo;
+		const { availableAmount, offerPrice, tradeFee } = this.otcQueueInfo;
 		const tokenBalances = getTokenBalances();
 		const availableBalance = new BigNumber(availableAmount).times(offerPrice).dividedBy(tradeFee);
 		const tokenBalance = new BigNumber(tokenBalances[this.firstTokenObject?.address?.toLowerCase()]);
@@ -263,8 +263,7 @@ export class Main extends Module implements PageBlock {
 			commissionsAmount = commissions.map(v => v.amount).reduce((a, b) => a.plus(b));
 		}
 		const maxTokenBalance = tokenBalance.gt(commissionsAmount) ? tokenBalance.minus(commissionsAmount) : new BigNumber(0);
-		const amountIn = new BigNumber(amount).times(offerPrice).dividedBy(tradeFee);
-		return (BigNumber.minimum(availableBalance, maxTokenBalance, amountIn)).toFixed();
+		return (BigNumber.minimum(availableBalance, maxTokenBalance, availableAmount)).toFixed();
 	}
 
 	private getSecondAvailableBalance = () => {
@@ -539,7 +538,7 @@ export class Main extends Module implements PageBlock {
 	private renderOTCQueueCampaign = async () => {
 		if (this.otcQueueInfo) {
 			this.otcQueueElm.clearInnerHTML();
-			const { pairAddress, totalAmount, amount, restrictedPrice, startDate, expire } = this.otcQueueInfo;
+			const { pairAddress, totalAmount, availableAmount, restrictedPrice, startDate, expire } = this.otcQueueInfo;
 			const { title, description, logo } = this.data;
 			const chainId = getChainId();
 			const firstSymbol = this.firstTokenObject?.symbol || '';
@@ -641,10 +640,10 @@ export class Main extends Module implements PageBlock {
 								<i-vstack gap={4} width="calc(50% - 25px)">
 									<i-label caption="Offer Availability" font={{ size: '12px' }} class="opacity-50" />
 									<i-hstack gap={4}>
-										<i-label caption={formatNumber(amount)} font={{ size: '12px', name: 'Montserrat Bold' }} />
-										<i-label caption={`/ ${formatNumber(totalAmount)} ${this.secondTokenObject?.symbol || ''}`} class="opacity-50" font={{ size: '12px', name: 'Montserrat Bold' }} />
+										<i-label caption={formatNumber(availableAmount)} font={{ size: '12px', name: 'Montserrat Bold' }} />
+										<i-label caption={`/ ${formatNumber(totalAmount)} ${this.firstTokenObject?.symbol || ''}`} class="opacity-50" font={{ size: '12px', name: 'Montserrat Bold' }} />
 									</i-hstack>
-									<i-progress width="100%" height="auto" percent={amount.dividedBy(totalAmount).multipliedBy(100).toNumber()} strokeWidth={6} strokeColor="#F15E61" />
+									<i-progress width="100%" height="auto" percent={availableAmount.dividedBy(totalAmount).multipliedBy(100).toNumber()} strokeWidth={6} strokeColor="#F15E61" />
 								</i-vstack>
 								<i-vstack gap={4}>
 									<i-label caption="Valid Period" font={{ size: '12px' }} class="opacity-50" />

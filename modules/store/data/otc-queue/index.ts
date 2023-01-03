@@ -36,7 +36,6 @@ interface IOTCQueueData {
   allowAll: boolean;
   tradeFee: string | number;
   totalAmount: BigNumber;
-  amount: BigNumber;
   availableAmount: BigNumber;
   receiving: BigNumber;
   restrictedPrice: string;
