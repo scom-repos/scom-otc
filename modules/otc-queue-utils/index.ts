@@ -225,7 +225,7 @@ const getGroupQueueItemsForTrader = async (pairAddress: string, tokenIn: any, to
 
   for (let i = 0; i < amounts.length; i++) {
     if (amounts[i].eq("0")) continue;
-    let allocation = await getGroupQueueAllocation(trader, traderOffer.index[i].toNumber(), pairAddress, tokenIn, tokenOut);
+    let allocation = await getGroupQueueAllocation(trader, traderOffer.index[i].toFixed(), pairAddress, tokenIn, tokenOut);
     if (allocation.eq("0")) continue;
     let tokenOutAvailable = new BigNumber(amounts[i]).gt(new BigNumber(allocation)) ? allocation : amounts[i]
     let tokenInAvailable = new BigNumber(tokenOutAvailable).dividedBy(new BigNumber(prices[i])).shiftedBy(18 - tokenOut.decimals).dividedBy(new BigNumber(tradeFee)).decimalPlaces(tokenIn.decimals, 1).toFixed();
@@ -294,9 +294,9 @@ const getGroupQueueItemsForAllowAll = async (pairAddress: string, tokenIn: any, 
   return queueArr.filter(v => (moment().isBetween(v.start, v.expire) && v.allowAll == true));
 }
 
-const getGroupQueueAllocation = async (traderAddress: string, offerIndex: number, pairAddress: string, tokenIn: any, tokenOut: any) => {
+const getGroupQueueAllocation = async (traderAddress: string, offerIndex: string, pairAddress: string, tokenIn: any, tokenOut: any) => {
   let direction = new BigNumber(tokenIn.address.toLowerCase()).lt(tokenOut.address.toLowerCase());
-  return await new Contracts.OSWAP_OtcPair(getWallet() as any, pairAddress).traderAllocation({ param1: direction, param2: offerIndex, param3: traderAddress });
+  return await new Contracts.OSWAP_OtcPair(getWallet() as any, pairAddress).traderAllocation({ param1: direction, param2: Number(offerIndex), param3: traderAddress });
 };
 
 const getGroupQueueTraderDataObj = async (pairAddress: string, tokenIn: any, tokenOut: any, amountIn: string, offerIndex?: string) => {
@@ -364,7 +364,7 @@ const getOffers = async (params: IOTCQueueConfig) => {
 
   const offer = await pair.offers({
     param1: direction,
-    param2: offerIndex
+    param2: Number(offerIndex)
   });
 
   const originalAmount = new BigNumber(offer.originalAmount).shiftedBy(-Number(tokenIn.decimals));
@@ -407,7 +407,7 @@ const executeSell: (swapData: SwapData) => Promise<{
         swapData.routeTokens[0],
         swapData.routeTokens[1],
         swapData.fromAmount.toFixed(),
-        swapData.offerIndex?.toFixed()
+        swapData.offerIndex
       );
       if (!obj || !obj.data)
         return {

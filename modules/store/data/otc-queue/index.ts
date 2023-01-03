@@ -25,7 +25,7 @@ interface IOTCQueueConfig {
   logo?: string;
   pairAddress: string;
   direction: boolean;
-  offerIndex: number;
+  offerIndex: string;
   commissions?: ICommissionInfo[];
 }
 
@@ -41,7 +41,7 @@ interface IOTCQueueData {
   receiving: BigNumber;
   restrictedPrice: string;
   offerPrice: string;
-  offerIndex: number;
+  offerIndex: string;
   startDate: number;
   expire: number;
   tokenIn: ITokenObject;
@@ -57,7 +57,7 @@ interface SwapData {
   fromAmount: BigNumber;
   toAmount: BigNumber;
   isFromEstimated: boolean;
-  offerIndex?: number;
+  offerIndex?: string;
   commissions: ICommissionInfo[];
 }
 

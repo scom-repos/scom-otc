@@ -369,8 +369,8 @@ export class Main extends Module implements PageBlock {
 			fromAmount: new BigNumber(this.firstInput.value),
 			toAmount: new BigNumber(this.secondInput.value),
 			isFromEstimated: false,
-			groupQueueOfferIndex: offerIndex,
-			commissions: this.data.commissions
+			commissions: this.data.commissions,
+			offerIndex: offerIndex
 		}
 		const { error } = await executeSell(params);
 		if (error) {
