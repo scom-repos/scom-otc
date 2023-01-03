@@ -35,7 +35,8 @@ export class Main extends Module implements PageBlock {
 	private secondInputBox: VStack;
 	private firstInput: Input;
 	private secondInput: Input;
-	private lbFee: Label;
+	private lbTradeFee: Label;
+	private lbCommissionFee: Label;
 	private btnSell: Button;
 	private approvalModelAction: IERC20ApprovalAction;
 	private isApproveButtonShown: boolean;
@@ -288,6 +289,17 @@ export class Main extends Module implements PageBlock {
 		this.firstInputChange();
 	}
 
+	private calculateCommissionFee = () => {
+		const _commissions = (this.data.commissions || []).map(v => {
+			return {
+			  to: v.walletAddress,
+			  amount: new BigNumber(this.firstInput.value).times(v.share).dp(0)
+			}
+		});
+		const commissionsAmount: BigNumber = _commissions.length ? _commissions.map(v => v.amount).reduce((a, b) => a.plus(b)) : new BigNumber(0);
+		return commissionsAmount;
+	}
+
 	private firstInputChange = () => {
 		const firstToken = this.firstTokenObject;
 		const secondToken = this.secondTokenObject;
@@ -298,11 +310,14 @@ export class Main extends Module implements PageBlock {
 		const symbol = this.firstTokenObject?.symbol || '';
 		const inputVal = new BigNumber(this.firstInput.value).dividedBy(offerPrice).times(tradeFee);
 		if (inputVal.isNaN()) {
-			this.lbFee.caption = `0 ${symbol}`;
+			this.lbTradeFee.caption = `0 ${symbol}`;
 			this.secondInput.value = '';
+			this.lbCommissionFee.caption = `0 ${symbol}`;
 		} else {
-			this.lbFee.caption = `${formatNumber(new BigNumber(1).minus(tradeFee).times(this.firstInput.value), 6)} ${symbol}`;
+			this.lbTradeFee.caption = `${formatNumber(new BigNumber(1).minus(tradeFee).times(this.firstInput.value), 6)} ${symbol}`;
 			this.secondInput.value = limitDecimals(inputVal, secondToken?.decimals || 18);
+			const commissionsAmount = this.calculateCommissionFee();
+			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
 		}
 		this.btnSell.caption = this.submitButtonText;
 		this.updateBtnSell();
@@ -319,10 +334,13 @@ export class Main extends Module implements PageBlock {
 		const inputVal = new BigNumber(this.secondInput.value).multipliedBy(offerPrice).dividedBy(tradeFee);
 		if (inputVal.isNaN()) {
 			this.firstInput.value = '';
-			this.lbFee.caption = `0 ${symbol}`;
+			this.lbTradeFee.caption = `0 ${symbol}`;
+			this.lbCommissionFee.caption = `0 ${symbol}`;
 		} else {
 			this.firstInput.value = limitDecimals(inputVal, firstToken?.decimals || 18);
-			this.lbFee.caption = `${formatNumber(new BigNumber(1).minus(tradeFee).times(this.firstInput.value), 6)} ${symbol}`;
+			this.lbTradeFee.caption = `${formatNumber(new BigNumber(1).minus(tradeFee).times(this.firstInput.value), 6)} ${symbol}`;
+			const commissionsAmount = this.calculateCommissionFee();
+			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
 		}
 		this.btnSell.caption = this.submitButtonText;
 		this.updateBtnSell();
@@ -707,8 +725,12 @@ export class Main extends Module implements PageBlock {
 							</i-hstack>
 							<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
 								<i-label caption="Trade Fee" font={{ size: '14px' }} class="opacity-50" />
-								<i-label id="lbFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
+								<i-label id="lbTradeFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
 							</i-hstack>
+							<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
+								<i-label caption="Commission Fee" font={{ size: '14px' }} class="opacity-50" />
+								<i-label id="lbCommissionFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
+							</i-hstack>							
 							<i-vstack margin={{ top: 15 }} verticalAlignment="center" horizontalAlignment="center">
 								<i-button
 									id="btnSell"
