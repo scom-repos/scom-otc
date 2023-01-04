@@ -1,5 +1,5 @@
 import { Module, Panel, Button, Label, VStack, Container, IEventBus, application, customModule, Modal, Input, moment, HStack } from '@ijstech/components';
-import { BigNumber, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
+import { BigNumber, Utils, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
 import Assets from '@modules/assets';
 import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from '@modules/global';
 import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances, SwapData } from '@modules/store';
@@ -252,21 +252,20 @@ export class Main extends Module implements PageBlock {
 		if (!this.otcQueueInfo || this.isSellDisabled) {
 			return '0';
 		}
-		const { availableAmount, offerPrice, tradeFee } = this.otcQueueInfo;
+		const { availableAmount } = this.otcQueueInfo;
 		const tokenBalances = getTokenBalances();
-		const availableBalance = new BigNumber(availableAmount).times(offerPrice).dividedBy(tradeFee);
 		const tokenBalance = new BigNumber(tokenBalances[this.firstTokenObject?.address?.toLowerCase()]);
 		let commissionsAmount = this.data.commissionFee && this.data.commissionFeeTo ? tokenBalance.times(this.data.commissionFee) : new BigNumber(0);
 		const maxTokenBalance = tokenBalance.gt(commissionsAmount) ? tokenBalance.minus(commissionsAmount) : new BigNumber(0);
-		return (BigNumber.minimum(availableBalance, maxTokenBalance, availableAmount)).toFixed();
+		return (BigNumber.minimum(availableAmount, maxTokenBalance)).toFixed();
 	}
 
 	private getSecondAvailableBalance = () => {
 		if (!this.otcQueueInfo) {
 			return '0';
 		}
-		const { offerPrice, tradeFee } = this.otcQueueInfo;
-		return new BigNumber(this.getFirstAvailableBalance()).dividedBy(offerPrice).times(tradeFee).toFixed();
+		const { restrictedPrice, amount } = this.otcQueueInfo;
+		return Utils.fromDecimals(amount, this.secondTokenObject?.decimals || 18).toFixed();
 	}
 
 	private handleFocusInput = (first: boolean, isFocus: boolean) => {
@@ -279,8 +278,8 @@ export class Main extends Module implements PageBlock {
 	}
 
 	private setMaxBalance = () => {
-		this.firstInput.value = limitDecimals(this.getFirstAvailableBalance(), this.firstTokenObject?.decimals || 18);
-		this.firstInputChange();
+		this.secondInput.value = this.getSecondAvailableBalance();
+		this.secondInputChange();
 	}
 
 	private calculateCommissionFee = () => {
@@ -294,9 +293,9 @@ export class Main extends Module implements PageBlock {
 		limitInputNumber(this.firstInput, firstToken?.decimals || 18);
 		if (!this.otcQueueInfo) return;
 		const info = this.otcQueueInfo;
-		const { offerPrice, tradeFee } = info;
+		const { offerPrice, tradeFee, restrictedPrice } = info;
 		const symbol = this.firstTokenObject?.symbol || '';
-		const inputVal = new BigNumber(this.firstInput.value).dividedBy(offerPrice);
+		const inputVal = new BigNumber(this.firstInput.value).times(restrictedPrice);
 		if (inputVal.isNaN()) {
 			this.lbOrderTotal.caption = `0 ${symbol}`;
 			this.secondInput.value = '';
@@ -305,7 +304,6 @@ export class Main extends Module implements PageBlock {
 			this.secondInput.value = limitDecimals(inputVal, secondToken?.decimals || 18);
 			const commissionsAmount = this.calculateCommissionFee();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
-			// const tradeFeeAmount = new BigNumber(1).minus(tradeFee).times(this.firstInput.value);
 			const totalAmount = commissionsAmount.plus(this.firstInput.value);
 			this.lbOrderTotal.caption = `${formatNumber(totalAmount, 6)} ${symbol}`;
 		}
@@ -327,10 +325,9 @@ export class Main extends Module implements PageBlock {
 			this.lbOrderTotal.caption = `0 ${symbol}`;
 			this.lbCommissionFee.caption = `0 ${symbol}`;
 		} else {
-			this.firstInput.value = limitDecimals(inputVal, firstToken?.decimals || 18);
+			this.firstInput.value = inputVal.toFixed();
 			const commissionsAmount = this.calculateCommissionFee();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
-			// const tradeFeeAmount = new BigNumber(1).minus(tradeFee).times(this.firstInput.value);
 			const totalAmount = commissionsAmount.plus(this.firstInput.value);
 			this.lbOrderTotal.caption = `${formatNumber(totalAmount, 6)} ${symbol}`;
 		}
@@ -549,7 +546,7 @@ export class Main extends Module implements PageBlock {
 	private renderOTCQueueCampaign = async () => {
 		if (this.otcQueueInfo) {
 			this.otcQueueElm.clearInnerHTML();
-			const { pairAddress, totalAmount, availableAmount, restrictedPrice, startDate, expire } = this.otcQueueInfo;
+			const { pairAddress, availableAmount, restrictedPrice, startDate, expire } = this.otcQueueInfo;
 			const { title, description, logo } = this.data;
 			const chainId = getChainId();
 			const firstSymbol = this.firstTokenObject?.symbol || '';
