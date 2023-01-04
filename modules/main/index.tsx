@@ -35,7 +35,7 @@ export class Main extends Module implements PageBlock {
 	private secondInputBox: VStack;
 	private firstInput: Input;
 	private secondInput: Input;
-	private lbTradeFee: Label;
+	private lbOrderTotal: Label;
 	private lbCommissionFee: Label;
 	private btnSell: Button;
 	private approvalModelAction: IERC20ApprovalAction;
@@ -293,7 +293,7 @@ export class Main extends Module implements PageBlock {
 		const _commissions = (this.data.commissions || []).map(v => {
 			return {
 			  to: v.walletAddress,
-			  amount: new BigNumber(this.firstInput.value).times(v.share).dp(0)
+			  amount: new BigNumber(this.firstInput.value).times(v.share)
 			}
 		});
 		const commissionsAmount: BigNumber = _commissions.length ? _commissions.map(v => v.amount).reduce((a, b) => a.plus(b)) : new BigNumber(0);
@@ -310,14 +310,16 @@ export class Main extends Module implements PageBlock {
 		const symbol = this.firstTokenObject?.symbol || '';
 		const inputVal = new BigNumber(this.firstInput.value).dividedBy(offerPrice).times(tradeFee);
 		if (inputVal.isNaN()) {
-			this.lbTradeFee.caption = `0 ${symbol}`;
+			this.lbOrderTotal.caption = `0 ${symbol}`;
 			this.secondInput.value = '';
 			this.lbCommissionFee.caption = `0 ${symbol}`;
 		} else {
-			this.lbTradeFee.caption = `${formatNumber(new BigNumber(1).minus(tradeFee).times(this.firstInput.value), 6)} ${symbol}`;
 			this.secondInput.value = limitDecimals(inputVal, secondToken?.decimals || 18);
 			const commissionsAmount = this.calculateCommissionFee();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
+			// const tradeFeeAmount = new BigNumber(1).minus(tradeFee).times(this.firstInput.value);
+			const totalAmount = commissionsAmount.plus(this.firstInput.value);
+			this.lbOrderTotal.caption = `${formatNumber(totalAmount, 6)} ${symbol}`;
 		}
 		this.btnSell.caption = this.submitButtonText;
 		this.updateBtnSell();
@@ -334,13 +336,15 @@ export class Main extends Module implements PageBlock {
 		const inputVal = new BigNumber(this.secondInput.value).multipliedBy(offerPrice).dividedBy(tradeFee);
 		if (inputVal.isNaN()) {
 			this.firstInput.value = '';
-			this.lbTradeFee.caption = `0 ${symbol}`;
+			this.lbOrderTotal.caption = `0 ${symbol}`;
 			this.lbCommissionFee.caption = `0 ${symbol}`;
 		} else {
 			this.firstInput.value = limitDecimals(inputVal, firstToken?.decimals || 18);
-			this.lbTradeFee.caption = `${formatNumber(new BigNumber(1).minus(tradeFee).times(this.firstInput.value), 6)} ${symbol}`;
 			const commissionsAmount = this.calculateCommissionFee();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
+			// const tradeFeeAmount = new BigNumber(1).minus(tradeFee).times(this.firstInput.value);
+			const totalAmount = commissionsAmount.plus(this.firstInput.value);
+			this.lbOrderTotal.caption = `${formatNumber(totalAmount, 6)} ${symbol}`;
 		}
 		this.btnSell.caption = this.submitButtonText;
 		this.updateBtnSell();
@@ -624,6 +628,8 @@ export class Main extends Module implements PageBlock {
 				setTimer();
 			}, 1000);
 
+			const tradeFeePercent = new BigNumber(1).minus(this.otcQueueInfo.tradeFee).times(100).toFixed();
+			const orderTotalCaption = `Order Total (${tradeFeePercent}% Trade Fee Included)`;
 			this.otcQueueElm.clearInnerHTML();
 			this.otcQueueElm.appendChild(
 				<i-panel class="pnl-ofc-queue container" padding={{ bottom: 15, top: 15, right: 20, left: 20 }} height="auto">
@@ -724,13 +730,13 @@ export class Main extends Module implements PageBlock {
 								</i-vstack>
 							</i-hstack>
 							<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
-								<i-label caption="Trade Fee" font={{ size: '14px' }} class="opacity-50" />
-								<i-label id="lbTradeFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
-							</i-hstack>
-							<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
 								<i-label caption="Commission Fee" font={{ size: '14px' }} class="opacity-50" />
 								<i-label id="lbCommissionFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
-							</i-hstack>							
+							</i-hstack>	
+							<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
+								<i-label caption={orderTotalCaption} font={{ size: '14px' }} class="opacity-50" />
+								<i-label id="lbOrderTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
+							</i-hstack>													
 							<i-vstack margin={{ top: 15 }} verticalAlignment="center" horizontalAlignment="center">
 								<i-button
 									id="btnSell"
