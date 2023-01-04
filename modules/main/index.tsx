@@ -66,6 +66,9 @@ export class Main extends Module implements PageBlock {
 
 	async setTag(value: any) {
 		this.tag = value;
+		if (this.tag && this.tag.feeTo) {
+			this.data.commissionFeeTo = this.tag.feeTo;
+		}
 	}
 
 	async edit() {
@@ -253,7 +256,7 @@ export class Main extends Module implements PageBlock {
 		const tokenBalances = getTokenBalances();
 		const availableBalance = new BigNumber(availableAmount).times(offerPrice).dividedBy(tradeFee);
 		const tokenBalance = new BigNumber(tokenBalances[this.firstTokenObject?.address?.toLowerCase()]);
-		let commissionsAmount = this.data.commissionFee ? tokenBalance.times(this.data.commissionFee) : new BigNumber(0);
+		let commissionsAmount = this.data.commissionFee && this.data.commissionFeeTo ? tokenBalance.times(this.data.commissionFee) : new BigNumber(0);
 		const maxTokenBalance = tokenBalance.gt(commissionsAmount) ? tokenBalance.minus(commissionsAmount) : new BigNumber(0);
 		return (BigNumber.minimum(availableBalance, maxTokenBalance, availableAmount)).toFixed();
 	}
@@ -281,7 +284,7 @@ export class Main extends Module implements PageBlock {
 	}
 
 	private calculateCommissionFee = () => {
-		const commissionsAmount = this.data.commissionFee ? new BigNumber(this.firstInput.value).times(this.data.commissionFee) : new BigNumber(0);
+		const commissionsAmount = this.data.commissionFee && this.data.commissionFeeTo ? new BigNumber(this.firstInput.value).times(this.data.commissionFee) : new BigNumber(0);
 		return commissionsAmount;
 	}
 
@@ -293,7 +296,7 @@ export class Main extends Module implements PageBlock {
 		const info = this.otcQueueInfo;
 		const { offerPrice, tradeFee } = info;
 		const symbol = this.firstTokenObject?.symbol || '';
-		const inputVal = new BigNumber(this.firstInput.value).dividedBy(offerPrice).times(tradeFee);
+		const inputVal = new BigNumber(this.firstInput.value).dividedBy(offerPrice);
 		if (inputVal.isNaN()) {
 			this.lbOrderTotal.caption = `0 ${symbol}`;
 			this.secondInput.value = '';
@@ -318,7 +321,7 @@ export class Main extends Module implements PageBlock {
 		const info = this.otcQueueInfo || {} as any;
 		const { offerPrice, tradeFee } = info;
 		const symbol = this.firstTokenObject?.symbol || '';
-		const inputVal = new BigNumber(this.secondInput.value).multipliedBy(offerPrice).dividedBy(tradeFee);
+		const inputVal = new BigNumber(this.secondInput.value).multipliedBy(offerPrice);
 		if (inputVal.isNaN()) {
 			this.firstInput.value = '';
 			this.lbOrderTotal.caption = `0 ${symbol}`;
@@ -616,6 +619,7 @@ export class Main extends Module implements PageBlock {
 
 			const tradeFeePercent = new BigNumber(1).minus(this.otcQueueInfo.tradeFee).times(100).toFixed();
 			const orderTotalCaption = `Order Total (${tradeFeePercent}% Trade Fee Included)`;
+			const isCommissionVisible = this.data.commissionFee && this.data.commissionFeeTo;
 			this.otcQueueElm.clearInnerHTML();
 			this.otcQueueElm.appendChild(
 				<i-panel class="pnl-ofc-queue container" padding={{ bottom: 15, top: 15, right: 20, left: 20 }} height="auto">
@@ -713,7 +717,7 @@ export class Main extends Module implements PageBlock {
 									</i-hstack>
 								</i-vstack>
 							</i-hstack>
-							<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
+							<i-hstack visible={isCommissionVisible} gap={10} verticalAlignment="center" horizontalAlignment="space-between">
 								<i-label caption="Commission Fee" font={{ size: '14px' }} class="opacity-50" />
 								<i-label id="lbCommissionFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
 							</i-hstack>	
