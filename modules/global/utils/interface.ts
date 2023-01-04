@@ -1,8 +1,3 @@
-export interface ICommissionInfo {
-  walletAddress: string;
-  share: string;
-}
-
 export interface PageBlock {
   // Properties
   getData: () => any;

@@ -1,8 +1,8 @@
 import { Module, Panel, Button, Label, VStack, Container, IEventBus, application, customModule, Modal, Input, moment, HStack } from '@ijstech/components';
 import { BigNumber, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
 import Assets from '@modules/assets';
-import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress, ICommissionInfo } from '@modules/global';
-import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances } from '@modules/store';
+import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from '@modules/global';
+import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances, SwapData } from '@modules/store';
 import { executeSell, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
 import { Alert } from '@modules/alert';
 import { PanelConfig } from '@modules/panel-config';
@@ -253,16 +253,7 @@ export class Main extends Module implements PageBlock {
 		const tokenBalances = getTokenBalances();
 		const availableBalance = new BigNumber(availableAmount).times(offerPrice).dividedBy(tradeFee);
 		const tokenBalance = new BigNumber(tokenBalances[this.firstTokenObject?.address?.toLowerCase()]);
-		let commissionsAmount = new BigNumber(0);
-		if (this.data?.commissions?.length) {
-			const commissions = (this.data.commissions).map((v: ICommissionInfo) => {
-				return {
-					to: v.walletAddress,
-					amount: tokenBalance.times(v.share)
-				}
-			})
-			commissionsAmount = commissions.map(v => v.amount).reduce((a, b) => a.plus(b));
-		}
+		let commissionsAmount = this.data.commissionFee ? tokenBalance.times(this.data.commissionFee) : new BigNumber(0);
 		const maxTokenBalance = tokenBalance.gt(commissionsAmount) ? tokenBalance.minus(commissionsAmount) : new BigNumber(0);
 		return (BigNumber.minimum(availableBalance, maxTokenBalance, availableAmount)).toFixed();
 	}
@@ -290,13 +281,7 @@ export class Main extends Module implements PageBlock {
 	}
 
 	private calculateCommissionFee = () => {
-		const _commissions = (this.data.commissions || []).map(v => {
-			return {
-			  to: v.walletAddress,
-			  amount: new BigNumber(this.firstInput.value).times(v.share)
-			}
-		});
-		const commissionsAmount: BigNumber = _commissions.length ? _commissions.map(v => v.amount).reduce((a, b) => a.plus(b)) : new BigNumber(0);
+		const commissionsAmount = this.data.commissionFee ? new BigNumber(this.firstInput.value).times(this.data.commissionFee) : new BigNumber(0);
 		return commissionsAmount;
 	}
 
@@ -381,7 +366,7 @@ export class Main extends Module implements PageBlock {
 		const secondToken = { ...this.secondTokenObject };
 		const { pairAddress, offerIndex } = this.otcQueueInfo;
 		this.showResultMessage(this.otcQueueAlert, 'warning', `Selling ${formatNumber(this.firstInput.value)} ${firstToken?.symbol || ''} to ${formatNumber(this.secondInput.value)} ${secondToken?.symbol || ''}`);
-		const params = {
+		const params: SwapData = {
 			provider: "RestrictedOracle",
 			queueType: QueueType.GROUP_QUEUE,
 			routeTokens: [firstToken, secondToken],
@@ -390,7 +375,8 @@ export class Main extends Module implements PageBlock {
 			fromAmount: new BigNumber(this.firstInput.value),
 			toAmount: new BigNumber(this.secondInput.value),
 			isFromEstimated: false,
-			commissions: this.data.commissions,
+			commissionFee: this.data.commissionFee,
+			commissionFeeTo: this.data.commissionFeeTo,
 			offerIndex: offerIndex
 		}
 		const { error } = await executeSell(params);
@@ -663,11 +649,9 @@ export class Main extends Module implements PageBlock {
 							<i-hstack gap={50} margin={{ top: 15 }} verticalAlignment="start">
 								<i-vstack gap={4} width="calc(50% - 25px)">
 									<i-label caption="Offer Availability" font={{ size: '12px' }} class="opacity-50" />
-									<i-hstack gap={4}>
-										<i-label caption={formatNumber(availableAmount)} font={{ size: '12px', name: 'Montserrat Bold' }} />
-										<i-label caption={`/ ${formatNumber(totalAmount)} ${this.firstTokenObject?.symbol || ''}`} class="opacity-50" font={{ size: '12px', name: 'Montserrat Bold' }} />
+									<i-hstack gap={4} verticalAlignment="end">
+										<i-label caption={`${formatNumber(availableAmount)} ${this.firstTokenObject?.symbol || ''}`} font={{ size: '24px', name: 'Montserrat Bold' }} />
 									</i-hstack>
-									<i-progress width="100%" height="auto" percent={availableAmount.dividedBy(totalAmount).multipliedBy(100).toNumber()} strokeWidth={6} strokeColor="#F15E61" />
 								</i-vstack>
 								<i-vstack gap={4}>
 									<i-label caption="Valid Period" font={{ size: '12px' }} class="opacity-50" />

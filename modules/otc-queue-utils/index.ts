@@ -1,8 +1,7 @@
 import {
   toWeiInv,
   ITokenObject,
-  numberToBytes32,
-  ICommissionInfo,
+  numberToBytes32
 } from '@modules/global';
 import { BigNumber, TransactionReceipt, Utils, Wallet } from '@ijstech/eth-wallet';
 import {
@@ -136,7 +135,20 @@ const mapTokenObjectSet = (obj: any) => {
   return obj;
 }
 
-const hybridTradeExactIn = async (wallet: Wallet, path: any[], pairs: string[], amountIn: string, amountOutMin: string, toAddress: string, deadline: number, data: string, commissions: ICommissionInfo[], callback?: any, confirmationCallback?: any) => {
+const hybridTradeExactIn = async (
+  wallet: Wallet, 
+  path: any[], 
+  pairs: string[], 
+  amountIn: string, 
+  amountOutMin: string, 
+  toAddress: string, 
+  deadline: number, 
+  data: string, 
+  commissionFee?: string, 
+  commissionFeeTo?: string, 
+  callback?: any, 
+  confirmationCallback?: any
+) => {
   if (path.length < 2) {
     return null;
   }
@@ -148,13 +160,15 @@ const hybridTradeExactIn = async (wallet: Wallet, path: any[], pairs: string[], 
   const proxy = new ProxyContracts.Proxy(wallet, proxyAddress);
   const amount = tokenIn.address ? Utils.toDecimals(amountIn, tokenIn.decimals).dp(0) : Utils.toDecimals(amountIn).dp(0);
   const _amountOutMin = Utils.toDecimals(amountOutMin, tokenOut.decimals).dp(0);
-  const _commissions = (commissions || []).map(v => {
-    return {
-      to: v.walletAddress,
-      amount: amount.times(v.share).dp(0)
-    }
-  });
-  const commissionsAmount = _commissions.length ? _commissions.map(v => v.amount).reduce((a, b) => a.plus(b)) : new BigNumber(0);
+  const _commissions = [];
+  let commissionsAmount = new BigNumber(0);
+  if (commissionFee && commissionFeeTo) {
+    commissionsAmount = amount.times(commissionFee).dp(0);
+    _commissions.push({
+      to: commissionFeeTo,
+      amount: commissionsAmount
+    });
+  }
   let receipt: any;
   if (!tokenIn.address) {
     const params = {
@@ -426,7 +440,8 @@ const executeSell: (swapData: SwapData) => Promise<{
         toAddress,
         transactionDeadline,
         data,
-        swapData.commissions,
+        swapData.commissionFee,
+        swapData.commissionFeeTo
       );
     }
   } catch (error) {
