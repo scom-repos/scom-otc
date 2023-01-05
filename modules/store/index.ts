@@ -255,6 +255,19 @@ export const getNetworkInfo = (chainId: number) => {
   return state.networkMap[chainId];
 }
 
+export const switchNetwork = async (chainId: number) => {
+  if (!isWalletConnected()) {
+    setCurrentChainId(chainId);
+    Wallet.getClientInstance().chainId = chainId;
+    application.EventBus.dispatch(EventId.chainChanged, chainId);
+    return;
+  }
+  const wallet = Wallet.getClientInstance();
+  if (wallet?.clientSideProvider?.walletPlugin === WalletPlugin.MetaMask) {
+    await wallet.switchNetwork(chainId);
+  }
+}
+
 export const getSiteSupportedNetworks = ()  => {
   let networkFullList = Object.values(state.networkMap);
   let list = networkFullList.filter(network => !getNetworkInfo(network.chainId).isDisabled);

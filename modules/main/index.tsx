@@ -1,8 +1,8 @@
-import { Module, Panel, Button, Label, VStack, Container, IEventBus, application, customModule, Modal, Input, moment, HStack } from '@ijstech/components';
+import { Module, Panel, Button, Label, VStack, Container, IEventBus, application, customModule, Modal, Input, moment, HStack, Styles } from '@ijstech/components';
 import { BigNumber, Utils, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
 import Assets from '@modules/assets';
 import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from '@modules/global';
-import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances, SwapData } from '@modules/store';
+import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances, SwapData, switchNetwork } from '@modules/store';
 import { executeSell, getHybridRouterAddress, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
 import { Alert } from '@modules/alert';
 import { PanelConfig } from '@modules/panel-config';
@@ -24,6 +24,7 @@ export class Main extends Module implements PageBlock {
 	private otcQueueElm: Panel;
 	private otcQueueAlert: Alert;
 	private noCampaignSection: Panel;
+	private switchNetworkSection: Panel;
 	private importFileErrModal: Modal;
 	private importFileErr: Label;
 	private isImportNewCampaign = false;
@@ -44,6 +45,7 @@ export class Main extends Module implements PageBlock {
 	private firstTokenObject: ITokenObject;
 	private secondTokenObject: ITokenObject;
 	private tokenPrice: string = '';
+	private targetChainId: number;
 
 	validateConfig() {
 
@@ -66,8 +68,13 @@ export class Main extends Module implements PageBlock {
 
 	async setTag(value: any) {
 		this.tag = value;
-		if (this.tag && this.tag.feeTo) {
-			this.data.commissionFeeTo = this.tag.feeTo;
+		if (this.tag) {
+			if (this.tag.feeTo) {
+				this.data.commissionFeeTo = this.tag.feeTo;
+			}
+			if (this.tag.chainId) {
+				this.targetChainId = Number(this.tag.chainId);
+			}
 		}
 	}
 
@@ -164,6 +171,11 @@ export class Main extends Module implements PageBlock {
 	}
 
 	private onSetupPage = async (connected: boolean, hideLoading?: boolean) => {
+		const chainId = getChainId();
+		if (this.targetChainId && chainId != this.targetChainId) {
+			await this.renderSwitchNetworkUI();
+			await switchNetwork(this.targetChainId);
+		}
 		if (!hideLoading && this.loadingElm) {
 			this.loadingElm.visible = true;
 		}
@@ -171,14 +183,14 @@ export class Main extends Module implements PageBlock {
 			this.renderEmpty();
 			return;
 		}
-		try {
+		try {			
 			this.otcQueueInfo = await getOffers(this.data);
 			await updateTokenBalances([this.otcQueueInfo.tokenIn, this.otcQueueInfo.tokenOut]);
 			this.firstTokenObject = this.otcQueueInfo.tokenIn;
 			this.secondTokenObject = this.otcQueueInfo.tokenOut;
 			this.tokenPrice = await getTokenPrice(this.secondTokenObject?.address);
 			this.renderOTCQueueCampaign();
-			if (this.firstTokenObject && this.firstTokenObject.symbol !== ChainNativeTokenByChainId[getChainId()]?.symbol) {
+			if (this.firstTokenObject && this.firstTokenObject.symbol !== ChainNativeTokenByChainId[chainId]?.symbol) {
 				await this.initApprovalModelAction();
 			}
 		} catch(err) {
@@ -536,6 +548,39 @@ export class Main extends Module implements PageBlock {
 			</i-panel>
 		);
 		this.noCampaignSection.visible = true;
+	}
+
+	private renderSwitchNetworkUI = async () => {
+		if (!this.switchNetworkSection) {
+			this.switchNetworkSection = await Panel.create({ height: '100%' });
+			this.switchNetworkSection.classList.add('container');
+		}
+		this.switchNetworkSection.clearInnerHTML();
+		const networkInfo = getNetworkInfo(this.targetChainId);
+		this.switchNetworkSection.appendChild(
+			<i-panel class="no-campaign" height="100%" background={{ color: '#0c1234' }}>
+				<i-vstack gap={10} verticalAlignment="center" horizontalAlignment="center">
+					<i-image url={Assets.fullPath('img/TrollTrooper.svg')} />
+					<i-hstack verticalAlignment='center' gap={4} wrap="wrap">
+						<i-label caption='Please switch your network to'></i-label>
+						<i-label
+							caption={networkInfo.name}
+							font={{ color: '#8dc63f' }}
+							class='pointer'
+							onClick={() => switchNetwork(this.targetChainId)}
+						></i-label>
+					</i-hstack>
+				</i-vstack>
+			</i-panel>
+		);
+		this.switchNetworkSection.visible = true;
+		if (this.otcQueueElm) {
+			this.otcQueueElm.clearInnerHTML();
+			this.otcQueueElm.appendChild(this.switchNetworkSection);
+		}
+		if (this.loadingElm) {
+			this.loadingElm.visible = false;
+		}
 	}
 
 	private renderEmpty = async () => {
