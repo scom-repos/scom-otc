@@ -3,7 +3,7 @@ import { BigNumber, Utils, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
 import Assets from '@modules/assets';
 import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from '@modules/global';
 import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances, SwapData } from '@modules/store';
-import { executeSell, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
+import { executeSell, getHybridRouterAddress, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
 import { Alert } from '@modules/alert';
 import { PanelConfig } from '@modules/panel-config';
 import './index.css';
@@ -278,8 +278,8 @@ export class Main extends Module implements PageBlock {
 	}
 
 	private setMaxBalance = () => {
-		this.secondInput.value = this.getSecondAvailableBalance();
-		this.secondInputChange();
+		this.firstInput.value = this.getFirstAvailableBalance();
+		this.firstInputChange();		
 	}
 
 	private calculateCommissionFee = () => {
@@ -414,7 +414,13 @@ export class Main extends Module implements PageBlock {
 	};
 
 	private initApprovalModelAction = async () => {
-		const spenderAddress = getProxyAddress();
+		let spenderAddress;
+		if (this.data.commissionFee && this.data.commissionFeeTo) {
+			spenderAddress = getProxyAddress();
+		}
+		else {
+			spenderAddress = getHybridRouterAddress();
+		}
 		this.approvalModelAction = await getERC20ApprovalModelAction(spenderAddress,
 			{
 				sender: this,

@@ -178,12 +178,17 @@ const hybridTradeExactIn = async (
       deadline,
       data
     };
-    const txData = await hybridRouter.swapExactETHForTokens.txData(params, amount);
-    await proxy.ethIn({
-      target: hybridRouterAddress,
-      commissions: _commissions,
-      data: txData
-    });
+    if (_commissions.length == 0) {
+      receipt = await hybridRouter.swapExactETHForTokens(params, amount);
+    }
+    else {
+      const txData = await hybridRouter.swapExactETHForTokens.txData(params, amount);
+      receipt = await proxy.ethIn({
+        target: hybridRouterAddress,
+        commissions: _commissions,
+        data: txData
+      });
+    }
   } else {
     const tokensIn = {
       token: tokenIn.address,
@@ -199,20 +204,34 @@ const hybridTradeExactIn = async (
       deadline,
       data
     };
-    let txData: string;
-    if (!tokenOut.address) {
-      txData = await hybridRouter.swapExactTokensForETH.txData(params);
-    } else {
-      txData = await hybridRouter.swapExactTokensForTokens.txData({
-        ...params,
-        tokenIn: tokenIn.address
+    if (_commissions.length == 0) {
+      if (!tokenOut.address) {
+        receipt = await hybridRouter.swapExactTokensForETH(params);
+      }
+      else {
+        receipt = await hybridRouter.swapExactTokensForTokens({
+          ...params,
+          tokenIn: tokenIn.address
+        });
+      }
+    }
+    else {
+      let txData: string;
+      if (!tokenOut.address) {
+        txData = await hybridRouter.swapExactTokensForETH.txData(params);
+      } 
+      else {
+        txData = await hybridRouter.swapExactTokensForTokens.txData({
+          ...params,
+          tokenIn: tokenIn.address
+        });
+      }
+      receipt = await proxy.tokenIn({
+        target: hybridRouterAddress,
+        tokensIn,
+        data: txData
       });
     }
-    receipt = await proxy.tokenIn({
-      target: hybridRouterAddress,
-      tokensIn,
-      data: txData
-    });
   }
   return receipt;
 }
