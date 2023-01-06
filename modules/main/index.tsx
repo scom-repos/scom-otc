@@ -171,7 +171,6 @@ export class Main extends Module implements PageBlock {
 	}
 
 	private onSetupPage = async (connected: boolean, hideLoading?: boolean) => {
-		this.targetChainId = 97;
 		const chainId = getChainId();
 		if (this.targetChainId && chainId != this.targetChainId) {
 			await this.renderSwitchNetworkUI();
