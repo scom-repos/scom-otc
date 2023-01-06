@@ -45,7 +45,6 @@ export class Main extends Module implements PageBlock {
 	private firstTokenObject: ITokenObject;
 	private secondTokenObject: ITokenObject;
 	private tokenPrice: string = '';
-	private targetChainId: number;
 
 	validateConfig() {
 
@@ -71,9 +70,6 @@ export class Main extends Module implements PageBlock {
 		if (this.tag) {
 			if (this.tag.feeTo) {
 				this.data.commissionFeeTo = this.tag.feeTo;
-			}
-			if (this.tag.chainId) {
-				this.targetChainId = Number(this.tag.chainId);
 			}
 		}
 	}
@@ -172,9 +168,9 @@ export class Main extends Module implements PageBlock {
 
 	private onSetupPage = async (connected: boolean, hideLoading?: boolean) => {
 		const chainId = getChainId();
-		if (this.targetChainId && chainId != this.targetChainId) {
-			await this.renderSwitchNetworkUI();
-			await switchNetwork(this.targetChainId);
+		if (this.data && this.data.chainId && chainId != this.data.chainId) {
+			await this.renderSwitchNetworkUI(this.data.chainId);
+			await switchNetwork(this.data.chainId);
 		}
 		else {
 			if (!hideLoading && this.loadingElm) {
@@ -552,13 +548,13 @@ export class Main extends Module implements PageBlock {
 		this.noCampaignSection.visible = true;
 	}
 
-	private renderSwitchNetworkUI = async () => {
+	private renderSwitchNetworkUI = async (chainId: number) => {
 		if (!this.switchNetworkSection) {
 			this.switchNetworkSection = await Panel.create({ height: '100%' });
 			this.switchNetworkSection.classList.add('container');
 		}
 		this.switchNetworkSection.clearInnerHTML();
-		const networkInfo = getNetworkInfo(this.targetChainId);
+		const networkInfo = getNetworkInfo(chainId);
 		this.switchNetworkSection.appendChild(
 			<i-panel class="no-campaign" height="100%" background={{ color: '#0c1234' }}>
 				<i-vstack gap={10} verticalAlignment="center" horizontalAlignment="center">
@@ -570,7 +566,7 @@ export class Main extends Module implements PageBlock {
 							caption={networkInfo.name}
 							class='pointer label-network'
 							border={{ radius: '0.5rem' }}
-							onClick={() => switchNetwork(this.targetChainId)}
+							onClick={() => switchNetwork(chainId)}
 						></i-label>
 					</i-hstack>
 				</i-vstack>

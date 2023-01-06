@@ -1,5 +1,6 @@
 import { Container, customElements, ControlElement, Module, Input, application, Control, Upload, Checkbox, Image, HStack, Label, VStack, Table, Modal, Icon, Button } from '@ijstech/components';
 import { BigNumber } from '@ijstech/eth-contract';
+import { Wallet } from '@ijstech/eth-wallet';
 import { EventId, formatNumber, isValidNumber } from '@modules/global';
 import { getTokens } from '@modules/otc-queue-utils';
 import { getTokenIcon, IOTCQueueConfig, tokenSymbol } from '@modules/store';
@@ -170,6 +171,7 @@ export class CampaignConfig extends Module {
 
 	getData = () => {
 		const campaign: IOTCQueueConfig = {
+			chainId: Wallet.getClientInstance().chainId,
 			title: this.inputName.value,
 			description: this.inputDesc.value,
 			logo: this.logoUrl || undefined,

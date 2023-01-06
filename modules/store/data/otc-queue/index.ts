@@ -23,6 +23,7 @@ interface IOTCQueueConfig {
   title?: string;
   description?: string;
   logo?: string;
+  chainId: number;
   pairAddress: string;
   direction: boolean;
   offerIndex: string;
