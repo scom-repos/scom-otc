@@ -108,6 +108,9 @@ Styles.cssRule('.pageblock-otc-queue', {
       color: '#fff',
       background: '#1890ff'
     },
+    '.label-network': {
+      background: colorVar.primaryButton
+    },
     '.btn-os': {
       background: colorVar.primaryButton,
       height: 'auto !important',
@@ -266,7 +269,7 @@ Styles.cssRule('.pageblock-otc-queue', {
           justifyContent: 'center',
           $nest: {
             'i-label > *': {
-              fontSize: '1.5rem',
+              fontSize: '1.3rem',
               marginTop: '1rem',
             }
           }

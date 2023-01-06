@@ -59,7 +59,7 @@ export class Main extends Module implements PageBlock {
 		this.data = value;
 		this.pnlConfig.visible = false;
 		this.otcQueueLayout.visible = true;
-		this.onSetupPage(isWalletConnected());
+		await this.onSetupPage(isWalletConnected());
 	}
 
 	async getTag() {
@@ -109,7 +109,7 @@ export class Main extends Module implements PageBlock {
 		this.data = otcQueue;
 		this.pnlConfig.visible = false;
 		this.otcQueueLayout.visible = true;
-		this.onSetupPage(isWalletConnected());
+		await this.onSetupPage(isWalletConnected());
 	}
 
 	async onEditCampaign(isNew: boolean, data?: any) {
@@ -139,12 +139,12 @@ export class Main extends Module implements PageBlock {
 	}
 
 	private onWalletConnect = async (connected: boolean) => {
-		this.onSetupPage(connected);
+		await this.onSetupPage(connected);
 	}
 
 	private onChainChange = async () => {
 		const isConnected = isWalletConnected();
-		this.onSetupPage(isConnected);
+		await this.onSetupPage(isConnected);
 	}
 
 	private initWalletData = async () => {
@@ -171,34 +171,37 @@ export class Main extends Module implements PageBlock {
 	}
 
 	private onSetupPage = async (connected: boolean, hideLoading?: boolean) => {
+		this.targetChainId = 97;
 		const chainId = getChainId();
 		if (this.targetChainId && chainId != this.targetChainId) {
 			await this.renderSwitchNetworkUI();
 			await switchNetwork(this.targetChainId);
 		}
-		if (!hideLoading && this.loadingElm) {
-			this.loadingElm.visible = true;
-		}
-		if (!connected || !this.data) {
-			this.renderEmpty();
-			return;
-		}
-		try {			
-			this.otcQueueInfo = await getOffers(this.data);
-			await updateTokenBalances([this.otcQueueInfo.tokenIn, this.otcQueueInfo.tokenOut]);
-			this.firstTokenObject = this.otcQueueInfo.tokenIn;
-			this.secondTokenObject = this.otcQueueInfo.tokenOut;
-			this.tokenPrice = await getTokenPrice(this.secondTokenObject?.address);
-			this.renderOTCQueueCampaign();
-			if (this.firstTokenObject && this.firstTokenObject.symbol !== ChainNativeTokenByChainId[chainId]?.symbol) {
-				await this.initApprovalModelAction();
+		else {
+			if (!hideLoading && this.loadingElm) {
+				this.loadingElm.visible = true;
 			}
-		} catch(err) {
-			console.log('err', err);
-			this.renderEmpty();
-		}
-		if (!hideLoading && this.loadingElm) {
-			this.loadingElm.visible = false;
+			if (!connected || !this.data) {
+				await this.renderEmpty();
+				return;
+			}
+			try {			
+				this.otcQueueInfo = await getOffers(this.data);
+				await updateTokenBalances([this.otcQueueInfo.tokenIn, this.otcQueueInfo.tokenOut]);
+				this.firstTokenObject = this.otcQueueInfo.tokenIn;
+				this.secondTokenObject = this.otcQueueInfo.tokenOut;
+				this.tokenPrice = await getTokenPrice(this.secondTokenObject?.address);
+				await this.renderOTCQueueCampaign();
+				if (this.firstTokenObject && this.firstTokenObject.symbol !== ChainNativeTokenByChainId[chainId]?.symbol) {
+					await this.initApprovalModelAction();
+				}
+			} catch(err) {
+				console.log('err', err);
+				// await this.renderEmpty();
+			}
+			if (!hideLoading && this.loadingElm) {
+				this.loadingElm.visible = false;
+			}
 		}
 	}
 
@@ -564,9 +567,10 @@ export class Main extends Module implements PageBlock {
 					<i-hstack verticalAlignment='center' gap={4} wrap="wrap">
 						<i-label caption='Please switch your network to'></i-label>
 						<i-label
+							padding={{ left: '0.3rem', right: '0.3rem', top: '0.1rem', bottom: '0.1rem' }}
 							caption={networkInfo.name}
-							font={{ color: '#8dc63f' }}
-							class='pointer'
+							class='pointer label-network'
+							border={{ radius: '0.5rem' }}
 							onClick={() => switchNetwork(this.targetChainId)}
 						></i-label>
 					</i-hstack>
