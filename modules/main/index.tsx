@@ -321,7 +321,7 @@ export class Main extends Module implements PageBlock {
 			this.orderTotal = '';
 			this.lbCommissionFee.caption = `0 ${symbol}`;
 		} else {
-			this.secondInput.value = limitDecimals(inputVal, secondToken?.decimals || 18);
+			this.secondInput.value = inputVal.toFixed();
 			const commissionsAmount = this.calculateCommissionFee();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
 			this.orderSubTotal = new BigNumber(this.firstInput.value).div(tradeFee).toFixed();
@@ -369,7 +369,7 @@ export class Main extends Module implements PageBlock {
 		const secondVal = new BigNumber(this.secondInput.value);
 		const firstAvailable = this.getFirstAvailableBalance();
 		const secondAvailable = this.getSecondAvailableBalance();
-		if (firstVal.isNaN() || firstVal.lte(0) || firstVal.gt(firstAvailable) || secondVal.isNaN() || secondVal.lte(0) || secondVal.gt(secondAvailable)) {
+		if (firstVal.isNaN() || firstVal.lte(0) || firstVal.gt(firstAvailable)) {
 			this.btnSell.enabled = false;
 		} else {
 			this.btnSell.enabled = true;
