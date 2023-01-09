@@ -403,7 +403,7 @@ const getOffers = async (params: IOTCQueueConfig) => {
   const originalAmount = new BigNumber(offer.originalAmount).shiftedBy(-Number(tokenIn.decimals));
   const amount = new BigNumber(offer.amount);
   const tradeFee = new BigNumber(TRADE_FEE.base).minus(TRADE_FEE.fee).div(TRADE_FEE.base).toFixed();
-  const restrictedPrice = new BigNumber(offer.restrictedPrice).times(tradeFee).shiftedBy(-18).toFixed();
+  const restrictedPrice = new BigNumber(offer.restrictedPrice).shiftedBy(-18).toFixed();
   const offerPrice = toWeiInv(restrictedPrice).shiftedBy(-18).toFixed();
   return {
     pairAddress,

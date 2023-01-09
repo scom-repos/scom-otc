@@ -45,6 +45,8 @@ export class Main extends Module implements PageBlock {
 	private firstTokenObject: ITokenObject;
 	private secondTokenObject: ITokenObject;
 	private tokenPrice: string = '';
+	private orderSubTotal: string;
+	private orderTotal: string;
 
 	validateConfig() {
 
@@ -258,6 +260,12 @@ export class Main extends Module implements PageBlock {
 		return false;
 	}
 
+	private getFirstTokenBalance = () => {
+		const tokenBalances = getTokenBalances();
+		const tokenBalance = new BigNumber(tokenBalances[this.firstTokenObject?.address?.toLowerCase()]);
+		return tokenBalance.toFixed();
+	}
+
 	private getFirstAvailableBalance = () => {
 		if (!this.otcQueueInfo || this.isSellDisabled) {
 			return '0';
@@ -274,7 +282,7 @@ export class Main extends Module implements PageBlock {
 		if (!this.otcQueueInfo) {
 			return '0';
 		}
-		const { restrictedPrice, amount } = this.otcQueueInfo;
+		const { amount } = this.otcQueueInfo;
 		return Utils.fromDecimals(amount, this.secondTokenObject?.decimals || 18).toFixed();
 	}
 
@@ -300,7 +308,7 @@ export class Main extends Module implements PageBlock {
 	private firstInputChange = () => {
 		const firstToken = this.firstTokenObject;
 		const secondToken = this.secondTokenObject;
-		limitInputNumber(this.firstInput, firstToken?.decimals || 18);
+		// limitInputNumber(this.firstInput, firstToken?.decimals || 18);
 		if (!this.otcQueueInfo) return;
 		const info = this.otcQueueInfo;
 		const { offerPrice, tradeFee, restrictedPrice } = info;
@@ -309,13 +317,16 @@ export class Main extends Module implements PageBlock {
 		if (inputVal.isNaN()) {
 			this.lbOrderTotal.caption = `0 ${symbol}`;
 			this.secondInput.value = '';
+			this.orderSubTotal = '';
+			this.orderTotal = '';
 			this.lbCommissionFee.caption = `0 ${symbol}`;
 		} else {
 			this.secondInput.value = limitDecimals(inputVal, secondToken?.decimals || 18);
 			const commissionsAmount = this.calculateCommissionFee();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
-			const totalAmount = commissionsAmount.plus(this.firstInput.value);
-			this.lbOrderTotal.caption = `${formatNumber(totalAmount, 6)} ${symbol}`;
+			this.orderSubTotal = new BigNumber(this.firstInput.value).div(tradeFee).toFixed();
+			this.orderTotal = commissionsAmount.plus(this.orderSubTotal).toFixed();
+			this.lbOrderTotal.caption = `${formatNumber(this.orderTotal, 6)} ${symbol}`;
 		}
 		this.btnSell.caption = this.submitButtonText;
 		this.updateBtnSell();
@@ -324,7 +335,7 @@ export class Main extends Module implements PageBlock {
 	private secondInputChange = () => {
 		const firstToken = this.firstTokenObject;
 		const secondToken = this.secondTokenObject;
-		limitInputNumber(this.secondInput, secondToken?.decimals || 18);
+		// limitInputNumber(this.secondInput, secondToken?.decimals || 18);
 		if (!this.otcQueueInfo) return;
 		const info = this.otcQueueInfo || {} as any;
 		const { offerPrice, tradeFee } = info;
@@ -332,14 +343,17 @@ export class Main extends Module implements PageBlock {
 		const inputVal = new BigNumber(this.secondInput.value).multipliedBy(offerPrice);
 		if (inputVal.isNaN()) {
 			this.firstInput.value = '';
+			this.orderSubTotal = '';
+			this.orderTotal = '';
 			this.lbOrderTotal.caption = `0 ${symbol}`;
 			this.lbCommissionFee.caption = `0 ${symbol}`;
 		} else {
 			this.firstInput.value = inputVal.toFixed();
 			const commissionsAmount = this.calculateCommissionFee();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
-			const totalAmount = commissionsAmount.plus(this.firstInput.value);
-			this.lbOrderTotal.caption = `${formatNumber(totalAmount, 6)} ${symbol}`;
+			this.orderSubTotal = new BigNumber(this.firstInput.value).div(tradeFee).toFixed();
+			this.orderTotal = commissionsAmount.plus(this.orderSubTotal).toFixed();
+			this.lbOrderTotal.caption = `${formatNumber(this.orderTotal, 6)} ${symbol}`;
 		}
 		this.btnSell.caption = this.submitButtonText;
 		this.updateBtnSell();
@@ -382,7 +396,7 @@ export class Main extends Module implements PageBlock {
 			routeTokens: [firstToken, secondToken],
 			bestSmartRoute: [firstToken, secondToken],
 			pairs: [pairAddress],
-			fromAmount: new BigNumber(this.firstInput.value),
+			fromAmount: new BigNumber(this.orderSubTotal),
 			toAmount: new BigNumber(this.secondInput.value),
 			isFromEstimated: false,
 			commissionFee: this.data.commissionFee,
@@ -411,9 +425,10 @@ export class Main extends Module implements PageBlock {
 			return 'Amount must be greater than 0';
 		}
 		if (this.otcQueueInfo) {
+			console.log('submitButtonText')
 			const firstMaxVal = new BigNumber(this.getFirstAvailableBalance());
-			const secondMaxVal = new BigNumber(this.getSecondAvailableBalance());
-			if (firstVal.gt(firstMaxVal) || secondVal.gt(secondMaxVal)) {
+			// const secondMaxVal = new BigNumber(this.getSecondAvailableBalance());
+			if (firstVal.gt(firstMaxVal)) {
 				return 'Insufficient amount available';
 			}
 		}
@@ -715,9 +730,9 @@ export class Main extends Module implements PageBlock {
 									<i-hstack gap={4} verticalAlignment="end">
 										<i-label caption={`${this.firstTokenObject?.symbol || ''} to sell`} font={{ size: '12px' }} class="opacity-50" />
 										<i-label
-											caption={`Balance: ${formatNumber(this.getFirstAvailableBalance())} ${firstSymbol}`}
+											caption={`Balance: ${formatNumber(this.getFirstTokenBalance())} ${firstSymbol}`}
 											font={{ size: '12px' }}
-											tooltip={{ content: `${formatNumber(this.getFirstAvailableBalance())} ${firstSymbol}`, placement: 'top' }}
+											tooltip={{ content: `${formatNumber(this.getFirstTokenBalance())} ${firstSymbol}`, placement: 'top' }}
 											class="opacity-50 text-overflow"
 											maxWidth="calc(100% - 110px)"
 											margin={{ left: 'auto' }}
