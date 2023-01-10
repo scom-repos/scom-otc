@@ -17,6 +17,8 @@ import {
   ChainNativeTokenByChainId,
   WETHByChainId,
   getTokenIconPath,
+  InfuraId,
+  Networks,
 } from './data/index';
 
 export const fallBackUrl = Assets.fullPath('img/tokens/token-placeholder.svg');
@@ -197,17 +199,17 @@ export const state = {
   infuraId: "",
   networkMap: {} as { [key: number]: INetwork },
   proxyAddresses: {} as ProxyAddresses,
+  ipfsGatewayUrl: ""
 }
 
-export const setDataFromSCConfig = (networkList: INetwork[], infuraId: string, proxyInfo?: ProxyAddresses) => {
-  if (proxyInfo) {
-    setProxyAddresses(proxyInfo)
+export const setDataFromSCConfig = (options: any) => {
+  if (options.proxyAddresses) {
+    setProxyAddresses(options.proxyAddresses);
   }
-  if (infuraId) {
-    setInfuraId(infuraId)
-  }			
-  if (networkList) {
-    setNetworkList(networkList)
+  setInfuraId(options.infuraId || InfuraId);		
+  setNetworkList(options.networkList || Networks);
+  if (options.ipfsGatewayUrl) {
+    setIPFSGatewayUrl(options.ipfsGatewayUrl);
   }
 }
 
@@ -222,6 +224,14 @@ export const getProxyAddress = (chainId?: number) => {
     return proxyAddresses[_chainId];
   }
   return null;
+}
+
+export const setIPFSGatewayUrl = (url: string) => {
+  state.ipfsGatewayUrl = url;
+}
+
+export const getIPFSGatewayUrl = () => {
+  return state.ipfsGatewayUrl;
 }
 
 export const getDefaultChainId = () => {

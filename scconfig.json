@@ -36,5 +36,6 @@
     "proxyAddresses": {
         "97": "0x36c6E2430c211aeB7b606a44acB8eb8Fd6279e88",
         "43113": "0x44ef4Ff71043f491ED6D69C61aF97eaA66f76CFb"
-    }
+    },
+    "ipfsGatewayUrl": "https://ipfs.scom.dev/ipfs/"
 }

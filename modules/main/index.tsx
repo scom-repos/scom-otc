@@ -2,7 +2,7 @@ import { Module, Panel, Button, Label, VStack, Container, IEventBus, application
 import { BigNumber, Utils, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
 import Assets from '@modules/assets';
 import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from '@modules/global';
-import { InfuraId, Networks, getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances, SwapData, switchNetwork } from '@modules/store';
+import { getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances, SwapData, switchNetwork, getIPFSGatewayUrl } from '@modules/store';
 import { executeSell, getHybridRouterAddress, getOffers, getTokenPrice } from '@modules/otc-queue-utils';
 import { Alert } from '@modules/alert';
 import { PanelConfig } from '@modules/panel-config';
@@ -123,8 +123,8 @@ export class Main extends Module implements PageBlock {
 
 	constructor(parent?: Container, options?: any) {
 		super(parent, options);
-		if (options && options.proxyAddresses) {
-			setProxyAddresses(options.proxyAddresses);
+		if (options && options) {
+			setDataFromSCConfig(options);
 		}
 		this.$eventBus = application.EventBus;
 		this.registerEvent();
@@ -425,7 +425,6 @@ export class Main extends Module implements PageBlock {
 			return 'Amount must be greater than 0';
 		}
 		if (this.otcQueueInfo) {
-			console.log('submitButtonText')
 			const firstMaxVal = new BigNumber(this.getFirstAvailableBalance());
 			// const secondMaxVal = new BigNumber(this.getSecondAvailableBalance());
 			if (firstVal.gt(firstMaxVal)) {
@@ -682,6 +681,7 @@ export class Main extends Module implements PageBlock {
 			const tradeFeePercent = new BigNumber(1).minus(this.otcQueueInfo.tradeFee).times(100).toFixed();
 			const orderTotalCaption = `Order Total (${tradeFeePercent}% Trade Fee Included)`;
 			const isCommissionVisible = this.data.commissionFee && this.data.commissionFeeTo;
+			const logoUrl = logo ? logo.replace('ipfs://', getIPFSGatewayUrl()) : null;
 			this.otcQueueElm.clearInnerHTML();
 			this.otcQueueElm.appendChild(
 				<i-panel class="pnl-ofc-queue container" padding={{ bottom: 15, top: 15, right: 20, left: 20 }} height="auto">
@@ -689,11 +689,11 @@ export class Main extends Module implements PageBlock {
 						<i-vstack gap={10} width={215} margin={{ right: 20 }} padding={{ right: 20 }} border={{ right: { width: 1.5, style: 'solid', color: '#04081D' } }} position="relative" verticalAlignment="center">
 							<i-label caption={title || ''} font={{ size: '16px', name: 'Montserrat Bold', bold: true }} />
 							{ 
-								logo ? <i-image
+								logoUrl ? <i-image
 									width={80}
 									height={80}
 									margin={{ left: 'auto', right: 'auto' }}
-									url={logo}
+									url={logoUrl}
 									fallbackUrl={fallBackUrl}
 								/> : []
 							}
@@ -826,7 +826,6 @@ export class Main extends Module implements PageBlock {
 			this.otcQueueAlert.visible = true;
 		}, 100)
 		this.initWalletData();
-		setDataFromSCConfig(Networks, InfuraId);
 		setCurrentChainId(getDefaultChainId());
 		if (!this.data) {
 			await this.renderEmpty();
