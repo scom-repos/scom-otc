@@ -710,15 +710,15 @@ export class Main extends Module implements PageBlock {
 							<i-label caption="Terms & Condition" link={{ href: 'https://docs.scom.dev/' }} display="block" margin={{ top: 'auto' }} class="opacity-50" font={{ size: '10px', color: '#FFF' }} />
 						</i-vstack>
 						<i-vstack verticalAlignment="center">
-							<i-hstack gap={4} verticalAlignment="center" horizontalAlignment="space-between">
-								<i-vstack margin={{ top: '0.5rem' }}>
+							<i-hstack gap='2.1rem' verticalAlignment="center">
+								<i-vstack margin={{ top: '0.5rem' }} width="50%">
 									<i-label caption="Offer to Buy" font={{ size: '1.1rem' }} class="opacity-50" />
 									<i-hstack gap={4} verticalAlignment="end">
 										<i-label caption={`${formatNumber(restrictedPrice)} ${this.secondTokenObject?.symbol || ''}`} font={{ size: 'clamp(1.3rem, 1.35rem + 1.1vw, 2.5rem)', name: 'Montserrat Bold' }} />
 										<i-label caption={`~ ${formatNumber(usd)} USD`} font={{ size: 'clamp(0.6rem, 0.55rem + 0.5vw, 1.1rem)' }} lineHeight="22px" class="opacity-50" />
 									</i-hstack>
 								</i-vstack>
-								<i-vstack margin={{ top: '0.5rem' }} gap="0.5rem">
+								<i-vstack margin={{ top: '0.5rem' }} gap="0.5rem" width="50%">
 									<i-vstack gap={4}>
 										<i-label caption="Offer Availability" font={{ size: '0.8rem' }} class="opacity-50" />
 										<i-hstack gap={4} verticalAlignment="end">
