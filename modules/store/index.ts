@@ -568,6 +568,6 @@ export const hasMetaMask = function () {
 }
 
 export const MAX_WIDTH = '720px';
-export const MAX_HEIGHT = '321px';
+export const MAX_HEIGHT = '371px';
 
 export * from './data/index';

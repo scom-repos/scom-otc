@@ -36,6 +36,7 @@ export class Main extends Module implements PageBlock {
 	private secondInputBox: VStack;
 	private firstInput: Input;
 	private secondInput: Input;
+	private lbOrderSubTotal: Label;
 	private lbOrderTotal: Label;
 	private lbCommissionFee: Label;
 	private btnSell: Button;
@@ -315,17 +316,19 @@ export class Main extends Module implements PageBlock {
 		const symbol = this.firstTokenObject?.symbol || '';
 		const inputVal = new BigNumber(this.firstInput.value).times(restrictedPrice);
 		if (inputVal.isNaN()) {
-			this.lbOrderTotal.caption = `0 ${symbol}`;
 			this.secondInput.value = '';
 			this.orderSubTotal = '';
 			this.orderTotal = '';
 			this.lbCommissionFee.caption = `0 ${symbol}`;
+			this.lbOrderSubTotal.caption = `0 ${symbol}`;
+			this.lbOrderTotal.caption = `0 ${symbol}`;
 		} else {
 			this.secondInput.value = inputVal.toFixed();
 			const commissionsAmount = this.calculateCommissionFee();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
 			this.orderSubTotal = new BigNumber(this.firstInput.value).div(tradeFee).toFixed();
 			this.orderTotal = commissionsAmount.plus(this.orderSubTotal).toFixed();
+			this.lbOrderSubTotal.caption = `${formatNumber(this.orderSubTotal, 6)} ${symbol}`; 
 			this.lbOrderTotal.caption = `${formatNumber(this.orderTotal, 6)} ${symbol}`;
 		}
 		this.btnSell.caption = this.submitButtonText;
@@ -345,14 +348,16 @@ export class Main extends Module implements PageBlock {
 			this.firstInput.value = '';
 			this.orderSubTotal = '';
 			this.orderTotal = '';
-			this.lbOrderTotal.caption = `0 ${symbol}`;
 			this.lbCommissionFee.caption = `0 ${symbol}`;
+			this.lbOrderSubTotal.caption = `0 ${symbol}`;
+			this.lbOrderTotal.caption = `0 ${symbol}`;
 		} else {
 			this.firstInput.value = inputVal.toFixed();
 			const commissionsAmount = this.calculateCommissionFee();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
 			this.orderSubTotal = new BigNumber(this.firstInput.value).div(tradeFee).toFixed();
 			this.orderTotal = commissionsAmount.plus(this.orderSubTotal).toFixed();
+			this.lbOrderSubTotal.caption = `${formatNumber(this.orderSubTotal, 6)} ${symbol}`; 
 			this.lbOrderTotal.caption = `${formatNumber(this.orderTotal, 6)} ${symbol}`;
 		}
 		this.btnSell.caption = this.submitButtonText;
@@ -617,7 +622,7 @@ export class Main extends Module implements PageBlock {
 			const usd = this.tokenPrice ? new BigNumber(restrictedPrice).times(this.tokenPrice).toFixed() : '0';
 
 			const hStackTimer = await HStack.create({ gap: 8, verticalAlignment: 'center' });
-			const lbTimer = await Label.create({ caption: 'Starts In', font: { size: '16px' } });
+			const lbTimer = await Label.create({ caption: 'Starts In', font: { size: '0.8rem' } });
 			lbTimer.classList.add('opacity-50');
 			const lbHour = await Label.create();
 			const lbDay = await Label.create();
@@ -640,11 +645,11 @@ export class Main extends Module implements PageBlock {
 			);
 
 			const hStackEndTime = await HStack.create({ gap: 8, verticalAlignment: 'center', visible: false });
-			const lbEndTime = await Label.create({ caption: 'Ended On', font: { size: '16px' } });
+			const lbEndTime = await Label.create({ caption: 'Ended On', font: { size: '0.8rem' } });
 			lbEndTime.classList.add('opacity-50');
 			hStackEndTime.appendChild(lbEndTime);
 			hStackEndTime.appendChild(
-				<i-label caption={formatDate(expire)} font={{ size: '16px', bold: true }} lineHeight="29px" />
+				<i-label caption={formatDate(expire)} font={{ size: '0.8rem', bold: true }} lineHeight="29px" />
 			);
 
 			let interval: any;
@@ -679,7 +684,7 @@ export class Main extends Module implements PageBlock {
 			}, 1000);
 
 			const tradeFeePercent = new BigNumber(1).minus(this.otcQueueInfo.tradeFee).times(100).toFixed();
-			const orderTotalCaption = `Order Total (${tradeFeePercent}% Trade Fee Included)`;
+			const orderSubTotalCaption = `Order Subtotal (With ${tradeFeePercent}% Trade Fee)`;
 			const isCommissionVisible = this.data.commissionFee && this.data.commissionFeeTo;
 			const logoUrl = logo ? logo.replace('ipfs://', getIPFSGatewayUrl()) : null;
 			this.otcQueueElm.clearInnerHTML();
@@ -705,27 +710,29 @@ export class Main extends Module implements PageBlock {
 							<i-label caption="Terms & Condition" link={{ href: 'https://docs.scom.dev/' }} display="block" margin={{ top: 'auto' }} class="opacity-50" font={{ size: '10px', color: '#FFF' }} />
 						</i-vstack>
 						<i-vstack verticalAlignment="center">
-							<i-vstack gap={4} verticalAlignment="center">
-								<i-label caption="Offer to Buy" font={{ size: '12px' }} class="opacity-50" />
-								<i-hstack gap={4} verticalAlignment="end">
-									<i-label caption={`${formatNumber(restrictedPrice)} ${this.secondTokenObject?.symbol || ''}`} font={{ size: '2rem', name: 'Montserrat Bold' }} />
-									<i-label caption={`~ ${formatNumber(usd)} USD`} font={{ size: '12px' }} lineHeight="22px" class="opacity-50" />
-								</i-hstack>
-							</i-vstack>
-							<i-hstack gap={50} margin={{ top: 15 }} verticalAlignment="start">
-								<i-vstack gap={4} width="calc(50% - 25px)">
-									<i-label caption="Offer Availability" font={{ size: '12px' }} class="opacity-50" />
+							<i-hstack gap={4} verticalAlignment="center" horizontalAlignment="space-between">
+								<i-vstack margin={{ top: '0.5rem' }}>
+									<i-label caption="Offer to Buy" font={{ size: '1.1rem' }} class="opacity-50" />
 									<i-hstack gap={4} verticalAlignment="end">
-										<i-label caption={`${formatNumber(availableAmount)} ${this.firstTokenObject?.symbol || ''}`} font={{ size: '1rem' }} />
+										<i-label caption={`${formatNumber(restrictedPrice)} ${this.secondTokenObject?.symbol || ''}`} font={{ size: 'clamp(1.3rem, 1.35rem + 1.1vw, 2.5rem)', name: 'Montserrat Bold' }} />
+										<i-label caption={`~ ${formatNumber(usd)} USD`} font={{ size: 'clamp(0.6rem, 0.55rem + 0.5vw, 1.1rem)' }} lineHeight="22px" class="opacity-50" />
 									</i-hstack>
 								</i-vstack>
-								<i-vstack gap={4}>
-									<i-label caption="Valid Period" font={{ size: '12px' }} class="opacity-50" />
-									{ hStackTimer }
-									{ hStackEndTime }
-								</i-vstack>
+								<i-vstack margin={{ top: '0.5rem' }} gap="0.5rem">
+									<i-vstack gap={4}>
+										<i-label caption="Offer Availability" font={{ size: '0.8rem' }} class="opacity-50" />
+										<i-hstack gap={4} verticalAlignment="end">
+											<i-label caption={`${formatNumber(availableAmount)} ${this.firstTokenObject?.symbol || ''}`} font={{ size: '0.8rem' }} />
+										</i-hstack>
+									</i-vstack>
+									<i-vstack gap={4}>
+										<i-label caption="Valid Period" font={{ size: '0.8rem' }} class="opacity-50" />
+										{ hStackTimer }
+										{ hStackEndTime }
+									</i-vstack>
+								</i-vstack>							
 							</i-hstack>
-							<i-hstack gap={10} margin={{ top: 15 }} verticalAlignment="center">
+							<i-hstack gap={10} verticalAlignment="center">
 								<i-vstack gap={4} width="calc(50% - 20px)" height={85} verticalAlignment="center">
 									<i-hstack gap={4} verticalAlignment="end">
 										<i-label caption={`${this.firstTokenObject?.symbol || ''} to sell`} font={{ size: '12px' }} class="opacity-50" />
@@ -779,14 +786,26 @@ export class Main extends Module implements PageBlock {
 									</i-hstack>
 								</i-vstack>
 							</i-hstack>
-							<i-hstack visible={isCommissionVisible} gap={10} verticalAlignment="center" horizontalAlignment="space-between">
-								<i-label caption="Commission Fee" font={{ size: '14px' }} class="opacity-50" />
-								<i-label id="lbCommissionFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
-							</i-hstack>	
-							<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between">
-								<i-label caption={orderTotalCaption} font={{ size: '14px' }} class="opacity-50" />
-								<i-label id="lbOrderTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{ size: '14px' }} />
-							</i-hstack>													
+							<i-vstack 
+								margin={{top: '0.5rem'}} 
+								padding={{top: '0.5rem', bottom: '0.5rem', left: '0.5rem', right: '0.5rem'}}
+								gap="0.5rem"
+								background={{color: '#0c1234'}} 
+								border={{radius: '0.75rem', width: '1px', style: 'solid', color: 'transparent'}}
+							>
+								<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
+									<i-label caption={orderSubTotalCaption} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
+									<i-label id="lbOrderSubTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
+								</i-hstack>
+								<i-hstack visible={isCommissionVisible} gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
+									<i-label caption="Commission Fee" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
+									<i-label id="lbCommissionFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
+								</i-hstack>	
+								<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
+									<i-label caption="Order Total" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
+									<i-label id="lbOrderTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
+								</i-hstack>
+							</i-vstack>													
 							<i-vstack margin={{ top: 15 }} verticalAlignment="center" horizontalAlignment="center">
 								<i-button
 									id="btnSell"

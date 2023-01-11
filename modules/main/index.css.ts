@@ -96,10 +96,10 @@ Styles.cssRule('.pageblock-otc-queue', {
       letterSpacing: '0.15px',
     },
     '#otcQueueElm': {
-      background: '#0c1234',
+      background: '#192046',
     },
     '.i-loading-overlay': {
-      background: '#0c1234',
+      background: '#192046',
     },
     '.overflow-inherit': {
       overflow: 'inherit',
