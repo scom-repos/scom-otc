@@ -1,8 +1,4 @@
 ## Step 1: Install packages
-Create a new directory named `repos`, go into it and run the following commands:
-```
-git clone https://github.com/scom-repos/commission-proxy.git
-```
 ```sh
 docker-compose up install
 ```
