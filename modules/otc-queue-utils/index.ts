@@ -163,7 +163,7 @@ const hybridTradeExactIn = async (
   const _commissions = [];
   let commissionsAmount = new BigNumber(0);
   if (commissionFee && commissionFeeTo) {
-    commissionsAmount = amount.times(commissionFee).dp(0);
+    commissionsAmount = Utils.toDecimals(commissionFee, tokenIn.decimals).dp(0);
     _commissions.push({
       to: commissionFeeTo,
       amount: commissionsAmount

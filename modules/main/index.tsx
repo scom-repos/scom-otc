@@ -47,6 +47,7 @@ export class Main extends Module implements PageBlock {
 	private secondTokenObject: ITokenObject;
 	private tokenPrice: string = '';
 	private orderSubTotal: string;
+	private commissionAmount: string;
 	private orderTotal: string;
 
 	validateConfig() {
@@ -271,20 +272,19 @@ export class Main extends Module implements PageBlock {
 		if (!this.otcQueueInfo || this.isSellDisabled) {
 			return '0';
 		}
-		const { availableAmount } = this.otcQueueInfo;
+		const { availableAmount, tradeFee } = this.otcQueueInfo;
 		const tokenBalances = getTokenBalances();
 		const tokenBalance = new BigNumber(tokenBalances[this.firstTokenObject?.address?.toLowerCase()]);
-		let commissionsAmount = this.data.commissionFee && this.data.commissionFeeTo ? tokenBalance.times(this.data.commissionFee) : new BigNumber(0);
-		const maxTokenBalance = tokenBalance.gt(commissionsAmount) ? tokenBalance.minus(commissionsAmount) : new BigNumber(0);
-		return (BigNumber.minimum(availableAmount, maxTokenBalance)).toFixed();
-	}
-
-	private getSecondAvailableBalance = () => {
-		if (!this.otcQueueInfo) {
-			return '0';
+		console.log('tokenBalance', tokenBalance.toFixed())
+		let maxTokenBalance = new BigNumber(0);
+		if (this.data.commissionFee && this.data.commissionFeeTo) {
+			maxTokenBalance = new BigNumber(tokenBalance).div(new BigNumber(1).div(tradeFee).plus(this.data.commissionFee));
 		}
-		const { amount } = this.otcQueueInfo;
-		return Utils.fromDecimals(amount, this.secondTokenObject?.decimals || 18).toFixed();
+		else {
+			maxTokenBalance = new BigNumber(tokenBalance).div(new BigNumber(1).div(tradeFee));
+		}
+
+		return (BigNumber.minimum(availableAmount, maxTokenBalance)).toFixed();
 	}
 
 	private handleFocusInput = (first: boolean, isFocus: boolean) => {
@@ -317,14 +317,16 @@ export class Main extends Module implements PageBlock {
 		const inputVal = new BigNumber(this.firstInput.value).times(restrictedPrice);
 		if (inputVal.isNaN()) {
 			this.secondInput.value = '';
-			this.orderSubTotal = '';
-			this.orderTotal = '';
+			this.orderSubTotal = '0';
+			this.orderTotal = '0';
+			this.commissionAmount = '0';
 			this.lbCommissionFee.caption = `0 ${symbol}`;
 			this.lbOrderSubTotal.caption = `0 ${symbol}`;
 			this.lbOrderTotal.caption = `0 ${symbol}`;
 		} else {
 			this.secondInput.value = inputVal.toFixed();
 			const commissionsAmount = this.calculateCommissionFee();
+			this.commissionAmount = commissionsAmount.toFixed();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
 			this.orderSubTotal = new BigNumber(this.firstInput.value).div(tradeFee).toFixed();
 			this.orderTotal = commissionsAmount.plus(this.orderSubTotal).toFixed();
@@ -346,14 +348,16 @@ export class Main extends Module implements PageBlock {
 		const inputVal = new BigNumber(this.secondInput.value).multipliedBy(offerPrice);
 		if (inputVal.isNaN()) {
 			this.firstInput.value = '';
-			this.orderSubTotal = '';
-			this.orderTotal = '';
+			this.orderSubTotal = '0';
+			this.orderTotal = '0';
+			this.commissionAmount = '0';
 			this.lbCommissionFee.caption = `0 ${symbol}`;
 			this.lbOrderSubTotal.caption = `0 ${symbol}`;
 			this.lbOrderTotal.caption = `0 ${symbol}`;
 		} else {
 			this.firstInput.value = inputVal.toFixed();
 			const commissionsAmount = this.calculateCommissionFee();
+			this.commissionAmount = commissionsAmount.toFixed();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
 			this.orderSubTotal = new BigNumber(this.firstInput.value).div(tradeFee).toFixed();
 			this.orderTotal = commissionsAmount.plus(this.orderSubTotal).toFixed();
@@ -371,9 +375,7 @@ export class Main extends Module implements PageBlock {
 			return;
 		}
 		const firstVal = new BigNumber(this.firstInput.value);
-		const secondVal = new BigNumber(this.secondInput.value);
 		const firstAvailable = this.getFirstAvailableBalance();
-		const secondAvailable = this.getSecondAvailableBalance();
 		if (firstVal.isNaN() || firstVal.lte(0) || firstVal.gt(firstAvailable)) {
 			this.btnSell.enabled = false;
 		} else {
@@ -394,7 +396,7 @@ export class Main extends Module implements PageBlock {
 		const firstToken = { ...this.firstTokenObject };
 		const secondToken = { ...this.secondTokenObject };
 		const { pairAddress, offerIndex } = this.otcQueueInfo;
-		this.showResultMessage(this.otcQueueAlert, 'warning', `Selling ${formatNumber(this.firstInput.value)} ${firstToken?.symbol || ''} to ${formatNumber(this.secondInput.value)} ${secondToken?.symbol || ''}`);
+		this.showResultMessage(this.otcQueueAlert, 'warning', `Transferring ${formatNumber(this.orderTotal)} ${firstToken?.symbol || ''} for ${formatNumber(this.secondInput.value)} ${secondToken?.symbol || ''}`);
 		const params: SwapData = {
 			provider: "RestrictedOracle",
 			queueType: QueueType.GROUP_QUEUE,
@@ -404,7 +406,7 @@ export class Main extends Module implements PageBlock {
 			fromAmount: new BigNumber(this.orderSubTotal),
 			toAmount: new BigNumber(this.secondInput.value),
 			isFromEstimated: false,
-			commissionFee: this.data.commissionFee,
+			commissionFee: this.commissionAmount,
 			commissionFeeTo: this.data.commissionFeeTo,
 			offerIndex: offerIndex
 		}
@@ -431,7 +433,6 @@ export class Main extends Module implements PageBlock {
 		}
 		if (this.otcQueueInfo) {
 			const firstMaxVal = new BigNumber(this.getFirstAvailableBalance());
-			// const secondMaxVal = new BigNumber(this.getSecondAvailableBalance());
 			if (firstVal.gt(firstMaxVal)) {
 				return 'Insufficient amount available';
 			}
@@ -794,16 +795,16 @@ export class Main extends Module implements PageBlock {
 								border={{radius: '0.75rem', width: '1px', style: 'solid', color: 'transparent'}}
 							>
 								<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
-									<i-label caption={orderSubTotalCaption} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
-									<i-label id="lbOrderSubTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
+									<i-label caption={orderSubTotalCaption} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
+									<i-label id="lbOrderSubTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
 								</i-hstack>
 								<i-hstack visible={isCommissionVisible} gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
-									<i-label caption="Commission Fee" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
-									<i-label id="lbCommissionFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
+									<i-label caption="Commission Fee" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
+									<i-label id="lbCommissionFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
 								</i-hstack>	
 								<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
-									<i-label caption="Order Total" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
-									<i-label id="lbOrderTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)'}}/>
+									<i-label caption="You will transfer" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', color: '#f15e61', bold: true}}/>
+									<i-label id="lbOrderTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', color: '#f15e61', bold: true}}/>
 								</i-hstack>
 							</i-vstack>													
 							<i-vstack margin={{ top: 15 }} verticalAlignment="center" horizontalAlignment="center">
