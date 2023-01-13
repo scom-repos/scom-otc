@@ -714,10 +714,10 @@ export class Main extends Module implements PageBlock {
 							<i-hstack gap='2.1rem' verticalAlignment="center">
 								<i-vstack margin={{ top: '0.5rem' }} width="50%">
 									<i-label caption="Offer to Buy" font={{ size: '1.1rem' }} class="opacity-50" />
-									<i-hstack gap={4} verticalAlignment="end">
-										<i-label caption={`${formatNumber(restrictedPrice)} ${this.secondTokenObject?.symbol || ''}`} font={{ size: 'clamp(1.3rem, 1.35rem + 1.1vw, 2.5rem)', name: 'Montserrat Bold' }} />
-										<i-label caption={`~ ${formatNumber(usd)} USD`} font={{ size: 'clamp(0.6rem, 0.55rem + 0.5vw, 1.1rem)' }} lineHeight="22px" class="opacity-50" />
-									</i-hstack>
+									<i-vstack gap={4} horizontalAlignment="start">
+										<i-label caption={`${formatNumber(restrictedPrice)} ${this.secondTokenObject?.symbol || ''}`} font={{ size: 'clamp(1.3rem, 1.35rem + 0.9vw, 2.3rem)', name: 'Montserrat Bold' }} />
+										<i-label caption={`~ ${formatNumber(usd)} USD`} font={{ size: 'clamp(0.6rem, 0.55rem + 0.4vw, 1rem)' }} lineHeight="22px" class="opacity-50" />
+									</i-vstack>
 								</i-vstack>
 								<i-vstack margin={{ top: '0.5rem' }} gap="0.5rem" width="50%">
 									<i-vstack gap={4}>
