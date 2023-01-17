@@ -31,11 +31,10 @@
         "@ijstech/eth-contract": "*",
         "@scom/oswap-openswap-contract": "*",
         "@scom/oswap-chainlink-contract": "*",
-        "@scom/commission-proxy": "*"
+        "@scom/scom-commission-proxy-contract": "*"
     },
     "proxyAddresses": {
-        "97": "0x36c6E2430c211aeB7b606a44acB8eb8Fd6279e88",
-        "43113": "0x44ef4Ff71043f491ED6D69C61aF97eaA66f76CFb"
+        "97": "0xdfcf7D65D45D2E70c645E43aBD9DF1D4CfE90921"
     },
     "ipfsGatewayUrl": "https://ipfs.scom.dev/ipfs/"
 }

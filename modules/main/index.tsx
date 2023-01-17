@@ -275,7 +275,6 @@ export class Main extends Module implements PageBlock {
 		const { availableAmount, tradeFee } = this.otcQueueInfo;
 		const tokenBalances = getTokenBalances();
 		const tokenBalance = new BigNumber(tokenBalances[this.firstTokenObject?.address?.toLowerCase()]);
-		console.log('tokenBalance', tokenBalance.toFixed())
 		let maxTokenBalance = new BigNumber(0);
 		if (this.data.commissionFee && this.data.commissionFeeTo) {
 			maxTokenBalance = new BigNumber(tokenBalance).div(new BigNumber(1).div(tradeFee).plus(this.data.commissionFee));
@@ -314,8 +313,8 @@ export class Main extends Module implements PageBlock {
 		const info = this.otcQueueInfo;
 		const { offerPrice, tradeFee, restrictedPrice } = info;
 		const symbol = this.firstTokenObject?.symbol || '';
-		const inputVal = new BigNumber(this.firstInput.value).times(restrictedPrice);
-		if (inputVal.isNaN()) {
+		const outputVal = new BigNumber(this.firstInput.value).times(restrictedPrice);
+		if (outputVal.isNaN()) {
 			this.secondInput.value = '';
 			this.orderSubTotal = '0';
 			this.orderTotal = '0';
@@ -324,11 +323,11 @@ export class Main extends Module implements PageBlock {
 			this.lbOrderSubTotal.caption = `0 ${symbol}`;
 			this.lbOrderTotal.caption = `0 ${symbol}`;
 		} else {
-			this.secondInput.value = inputVal.toFixed();
+			this.secondInput.value = outputVal.toFixed();
 			const commissionsAmount = this.calculateCommissionFee();
 			this.commissionAmount = commissionsAmount.toFixed();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
-			this.orderSubTotal = new BigNumber(this.firstInput.value).div(tradeFee).toFixed();
+			this.orderSubTotal = new BigNumber(this.firstInput.value).shiftedBy(this.firstTokenObject.decimals).idiv(tradeFee).shiftedBy(-this.firstTokenObject.decimals).toFixed();
 			this.orderTotal = commissionsAmount.plus(this.orderSubTotal).toFixed();
 			this.lbOrderSubTotal.caption = `${formatNumber(this.orderSubTotal, 6)} ${symbol}`; 
 			this.lbOrderTotal.caption = `${formatNumber(this.orderTotal, 6)} ${symbol}`;
@@ -359,7 +358,7 @@ export class Main extends Module implements PageBlock {
 			const commissionsAmount = this.calculateCommissionFee();
 			this.commissionAmount = commissionsAmount.toFixed();
 			this.lbCommissionFee.caption = `${formatNumber(commissionsAmount, 6)} ${symbol}`;
-			this.orderSubTotal = new BigNumber(this.firstInput.value).div(tradeFee).toFixed();
+			this.orderSubTotal = new BigNumber(this.firstInput.value).shiftedBy(this.firstTokenObject.decimals).idiv(tradeFee).shiftedBy(-this.firstTokenObject.decimals).toFixed();
 			this.orderTotal = commissionsAmount.plus(this.orderSubTotal).toFixed();
 			this.lbOrderSubTotal.caption = `${formatNumber(this.orderSubTotal, 6)} ${symbol}`; 
 			this.lbOrderTotal.caption = `${formatNumber(this.orderTotal, 6)} ${symbol}`;
@@ -710,7 +709,7 @@ export class Main extends Module implements PageBlock {
 							</i-vstack>
 							<i-label caption="Terms & Condition" link={{ href: 'https://docs.scom.dev/' }} display="block" margin={{ top: 'auto' }} class="opacity-50" font={{ size: '10px', color: '#FFF' }} />
 						</i-vstack>
-						<i-vstack verticalAlignment="center">
+						<i-vstack verticalAlignment="start">
 							<i-hstack gap='2.1rem' verticalAlignment="center">
 								<i-vstack margin={{ top: '0.5rem' }} width="50%">
 									<i-label caption="Offer to Buy" font={{ size: '1.1rem' }} class="opacity-50" />
@@ -733,90 +732,94 @@ export class Main extends Module implements PageBlock {
 									</i-vstack>
 								</i-vstack>							
 							</i-hstack>
-							<i-hstack gap={10} verticalAlignment="center">
-								<i-vstack gap={4} width="calc(50% - 20px)" height={85} verticalAlignment="center">
-									<i-hstack gap={4} verticalAlignment="end">
-										<i-label caption={`${this.firstTokenObject?.symbol || ''} to sell`} font={{ size: '12px' }} class="opacity-50" />
-										<i-label
-											caption={`Balance: ${formatNumber(this.getFirstTokenBalance())} ${firstSymbol}`}
-											font={{ size: '12px' }}
-											tooltip={{ content: `${formatNumber(this.getFirstTokenBalance())} ${firstSymbol}`, placement: 'top' }}
-											class="opacity-50 text-overflow"
-											maxWidth="calc(100% - 110px)"
-											margin={{ left: 'auto' }}
-										/>
-										<i-button id="btnMax" caption="Max" enabled={!this.isSellDisabled && new BigNumber(this.getFirstAvailableBalance()).gt(0)} class="btn-os btn-max" width={26} font={{ size: '8px' }} onClick={this.setMaxBalance} />
-									</i-hstack>
-									<i-hstack id="firstInputBox" gap={8} width="100%" height={50} verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 6, right: 6 }}>
-										<i-hstack gap={4} width={100} verticalAlignment="center">
-											<i-image width={20} height={20} url={getTokenIcon(this.firstTokenObject?.address)} fallbackUrl={fallBackUrl} />
-											<i-label caption={firstSymbol} font={{ size: '16px' }} />
+							<i-vstack verticalAlignment="center">
+								<i-hstack gap={10} verticalAlignment="center">
+									<i-vstack gap={4} width="calc(50% - 20px)" height={85} verticalAlignment="center">
+										<i-hstack gap={4} verticalAlignment="end">
+											<i-label caption={`${this.firstTokenObject?.symbol || ''} to sell`} font={{ size: '12px' }} class="opacity-50" />
+											<i-label
+												caption={`Balance: ${formatNumber(this.getFirstTokenBalance())} ${firstSymbol}`}
+												font={{ size: '12px' }}
+												tooltip={{ content: `${formatNumber(this.getFirstTokenBalance())} ${firstSymbol}`, placement: 'top' }}
+												class="opacity-50 text-overflow"
+												maxWidth="calc(100% - 110px)"
+												margin={{ left: 'auto' }}
+											/>
+											<i-button id="btnMax" caption="Max" enabled={!this.isSellDisabled && new BigNumber(this.getFirstAvailableBalance()).gt(0)} class="btn-os btn-max" width={26} font={{ size: '8px' }} onClick={this.setMaxBalance} />
 										</i-hstack>
-										<i-input
-											id="firstInput"
-											inputType="number"
-											placeholder="0.0"
-											class="input-amount"
-											width="100%"
-											height="100%"
-											onChanged={this.firstInputChange}
-											onFocus={() => this.handleFocusInput(true, true)}
-											onBlur={() => this.handleFocusInput(true, false)}
-										/>
-									</i-hstack>
-								</i-vstack>
-								<i-icon name="arrow-right" fill="#f15e61" width={20} height={20} margin={{ top: 23 }} />
-								<i-vstack gap={4} width="calc(50% - 20px)" height={85} verticalAlignment="center">
-									<i-label caption="You Receive" font={{ size: '12px' }} class="opacity-50" />
-									<i-hstack id="secondInputBox" width="100%" height={50} position="relative" verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 6, right: 6 }}>
-										<i-hstack gap={4} margin={{ right: 8 }} width={100} verticalAlignment="center">
-											<i-image width={20} height={20} url={getTokenIcon(this.secondTokenObject?.address)} fallbackUrl={fallBackUrl} />
-											<i-label caption={this.secondTokenObject?.symbol || ''} font={{ size: '16px' }} />
+										<i-hstack id="firstInputBox" gap={8} width="100%" height={50} verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 6, right: 6 }}>
+											<i-hstack gap={4} width={100} verticalAlignment="center">
+												<i-image width={20} height={20} url={getTokenIcon(this.firstTokenObject?.address)} fallbackUrl={fallBackUrl} />
+												<i-label caption={firstSymbol} font={{ size: '16px' }} />
+											</i-hstack>
+											<i-input
+												id="firstInput"
+												inputType="number"
+												placeholder="0.0"
+												class="input-amount"
+												width="100%"
+												height="100%"
+												enabled={!this.isSellDisabled}
+												onChanged={this.firstInputChange}
+												onFocus={() => this.handleFocusInput(true, true)}
+												onBlur={() => this.handleFocusInput(true, false)}
+											/>
 										</i-hstack>
-										<i-input
-											id="secondInput"
-											inputType="number"
-											placeholder="0.0"
-											class="input-amount"
-											width="100%"
-											height="100%"
-											onChanged={this.secondInputChange}
-											onFocus={() => this.handleFocusInput(false, true)}
-											onBlur={() => this.handleFocusInput(false, false)}
-										/>
+									</i-vstack>
+									<i-icon name="arrow-right" fill="#f15e61" width={20} height={20} margin={{ top: 23 }} />
+									<i-vstack gap={4} width="calc(50% - 20px)" height={85} verticalAlignment="center">
+										<i-label caption="You Receive" font={{ size: '12px' }} class="opacity-50" />
+										<i-hstack id="secondInputBox" width="100%" height={50} position="relative" verticalAlignment="center" background={{ color: '#232B5A' }} border={{ radius: 16, width: 2, style: 'solid', color: 'transparent' }} padding={{ left: 6, right: 6 }}>
+											<i-hstack gap={4} margin={{ right: 8 }} width={100} verticalAlignment="center">
+												<i-image width={20} height={20} url={getTokenIcon(this.secondTokenObject?.address)} fallbackUrl={fallBackUrl} />
+												<i-label caption={this.secondTokenObject?.symbol || ''} font={{ size: '16px' }} />
+											</i-hstack>
+											<i-input
+												id="secondInput"
+												inputType="number"
+												placeholder="0.0"
+												class="input-amount"
+												width="100%"
+												height="100%"
+												enabled={!this.isSellDisabled}
+												onChanged={this.secondInputChange}
+												onFocus={() => this.handleFocusInput(false, true)}
+												onBlur={() => this.handleFocusInput(false, false)}
+											/>
+										</i-hstack>
+									</i-vstack>
+								</i-hstack>
+								<i-vstack 
+									margin={{top: '0.5rem'}} 
+									padding={{top: '0.5rem', bottom: '0.5rem', left: '0.5rem', right: '0.5rem'}}
+									gap="0.5rem"
+									background={{color: '#0c1234'}} 
+									border={{radius: '0.75rem', width: '1px', style: 'solid', color: 'transparent'}}
+								>
+									<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
+										<i-label caption={orderSubTotalCaption} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
+										<i-label id="lbOrderSubTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
 									</i-hstack>
+									<i-hstack visible={isCommissionVisible} gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
+										<i-label caption="Commission Fee" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
+										<i-label id="lbCommissionFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
+									</i-hstack>	
+									<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
+										<i-label caption="You will transfer" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', color: '#f15e61', bold: true}}/>
+										<i-label id="lbOrderTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', color: '#f15e61', bold: true}}/>
+									</i-hstack>
+								</i-vstack>													
+								<i-vstack margin={{ top: 15 }} verticalAlignment="center" horizontalAlignment="center">
+									<i-button
+										id="btnSell"
+										caption="Sell Now"
+										enabled={false}
+										class="btn-os btn-sell"
+										margin={{ bottom: 0 }}
+										rightIcon={{ spin: true, visible: false, fill: '#fff' }}
+										onClick={this.onSell}
+									/>
 								</i-vstack>
-							</i-hstack>
-							<i-vstack 
-								margin={{top: '0.5rem'}} 
-								padding={{top: '0.5rem', bottom: '0.5rem', left: '0.5rem', right: '0.5rem'}}
-								gap="0.5rem"
-								background={{color: '#0c1234'}} 
-								border={{radius: '0.75rem', width: '1px', style: 'solid', color: 'transparent'}}
-							>
-								<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
-									<i-label caption={orderSubTotalCaption} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
-									<i-label id="lbOrderSubTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
-								</i-hstack>
-								<i-hstack visible={isCommissionVisible} gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
-									<i-label caption="Commission Fee" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
-									<i-label id="lbCommissionFee" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', bold: true}}/>
-								</i-hstack>	
-								<i-hstack gap={10} verticalAlignment="center" horizontalAlignment="space-between" >
-									<i-label caption="You will transfer" font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', color: '#f15e61', bold: true}}/>
-									<i-label id="lbOrderTotal" caption={`0 ${this.firstTokenObject?.symbol || ''}`} font={{size: 'clamp(0.7rem, 0.65rem + 0.4vw, 1.1rem)', color: '#f15e61', bold: true}}/>
-								</i-hstack>
-							</i-vstack>													
-							<i-vstack margin={{ top: 15 }} verticalAlignment="center" horizontalAlignment="center">
-								<i-button
-									id="btnSell"
-									caption="Sell Now"
-									enabled={false}
-									class="btn-os btn-sell"
-									margin={{ bottom: 0 }}
-									rightIcon={{ spin: true, visible: false, fill: '#fff' }}
-									onClick={this.onSell}
-								/>
 							</i-vstack>
 						</i-vstack>
 					</i-hstack>

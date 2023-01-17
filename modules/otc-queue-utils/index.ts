@@ -21,7 +21,7 @@ import {
   getProxyAddress,
 } from '@modules/store';
 import { Contracts } from '@scom/oswap-openswap-contract';
-import { Contracts as ProxyContracts } from '@scom/commission-proxy';
+import { Contracts as ProxyContracts } from '@scom/scom-commission-proxy-contract';
 import { Contracts as ChainLinkContracts } from '@scom/oswap-chainlink-contract';
 import { moment } from '@ijstech/components';
 
@@ -183,11 +183,20 @@ const hybridTradeExactIn = async (
     }
     else {
       const txData = await hybridRouter.swapExactETHForTokens.txData(params, amount);
-      receipt = await proxy.ethIn({
+      receipt = await proxy.proxyCall({
         target: hybridRouterAddress,
-        commissions: _commissions,
-        data: txData
-      });
+        tokensIn: [
+          {
+            token: Utils.nullAddress,
+            amount: amount.plus(commissionsAmount),
+            directTransfer: false,
+            commissions: _commissions
+          }
+        ],
+        data: txData,
+        to: wallet.address,
+        tokensOut: []
+      })
     }
   } else {
     const tokensIn = {
@@ -217,20 +226,27 @@ const hybridTradeExactIn = async (
     }
     else {
       let txData: string;
+      let tokensOutAddress;
       if (!tokenOut.address) {
         txData = await hybridRouter.swapExactTokensForETH.txData(params);
+        tokensOutAddress = Utils.nullAddress;
       } 
       else {
         txData = await hybridRouter.swapExactTokensForTokens.txData({
           ...params,
           tokenIn: tokenIn.address
         });
+        tokensOutAddress = tokenOut.address;
       }
-      receipt = await proxy.tokenIn({
+      receipt = await proxy.proxyCall({
         target: hybridRouterAddress,
-        tokensIn,
-        data: txData
-      });
+        tokensIn: [
+          tokensIn
+        ],
+        data: txData,
+        to: wallet.address,
+        tokensOut: []
+      })
     }
   }
   return receipt;
@@ -405,10 +421,10 @@ const getOffers = async (params: IOTCQueueConfig) => {
   const tradeFee = new BigNumber(TRADE_FEE.base).minus(TRADE_FEE.fee).div(TRADE_FEE.base).toFixed();
   const restrictedPrice = new BigNumber(offer.restrictedPrice).shiftedBy(-18).toFixed();
   const offerPrice = toWeiInv(restrictedPrice).shiftedBy(-18).toFixed();
-  return {
+  const offerInfo = {
     pairAddress,
     totalAmount: new BigNumber(originalAmount).times(offerPrice).dividedBy(tradeFee),
-    availableAmount: new BigNumber(amount).times(offerPrice).shiftedBy(-Number(tokenIn.decimals)),
+    availableAmount: new BigNumber(amount).times(new BigNumber(1).shiftedBy(18)).idiv(offer.restrictedPrice).shiftedBy(-Number(tokenIn.decimals)),
     tradeFee,
     offerIndex,
     ...offer,
@@ -419,6 +435,7 @@ const getOffers = async (params: IOTCQueueConfig) => {
     tokenIn,
     tokenOut,
   };
+  return offerInfo;
 }
 
 const executeSell: (swapData: SwapData) => Promise<{
