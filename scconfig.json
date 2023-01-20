@@ -34,7 +34,7 @@
         "@scom/scom-commission-proxy-contract": "*"
     },
     "proxyAddresses": {
-        "97": "0xdfcf7D65D45D2E70c645E43aBD9DF1D4CfE90921"
+        "97": "0xBf263c6c8BCE1EC7Cfc068C15A76E5d95c937b62"
     },
     "ipfsGatewayUrl": "https://ipfs.scom.dev/ipfs/"
 }
