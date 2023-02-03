@@ -1492,5 +1492,11 @@ export const Tokens_BSC = [
     "symbol": "dBVR",
     "address": "0x16C5e51BFa38a6dD109bcc4921a92AEF13B14Ed9",
     "decimals": 18
+  },
+  {
+    "name": "CO",
+    "symbol": "CO",
+    "address": "0x936B6659Ad0C1b244Ba8Efe639092acae30dc8d6",
+    "decimals": 6
   }
 ]
