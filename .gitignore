@@ -1,4 +1,4 @@
 node_modules
 package-lock.json
-dist
-repos
+test/ref
+test/dist

@@ -11,9 +11,9 @@
         "declaration": false,        
         "baseUrl": ".",
         "paths": {
-            "@modules/*":["modules/*"]
+            "@scom-otc/*":["src/*"]
         }
     },
-    "include": ["modules/**/*.ts","modules/**/*.tsx"],
+    "include": ["src/**/*.ts","src/**/*.tsx"],
     "exclude": ["node_modules"]
 }
