@@ -1,16 +1,26 @@
-import { Module, Panel, Button, Label, VStack, Container, IEventBus, application, customModule, Modal, Input, moment, HStack, Styles, customElements, ControlElement } from '@ijstech/components';
-import { BigNumber, Utils, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
+import { Module, Panel, Button, Label, VStack, Container, IEventBus, application, customModule, Modal, Input, moment, HStack, customElements, ControlElement } from '@ijstech/components';
+import { BigNumber, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
+import {} from '@ijstech/eth-contract';
 import Assets from './assets';
-import { formatNumber, formatDate, PageBlock, EventId, limitInputNumber, limitDecimals, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from './global';
-import { getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, setProxyAddresses, getProxyAddress, updateTokenBalances, SwapData, switchNetwork, getIPFSGatewayUrl } from './store';
-import { executeSell, getHybridRouterAddress, getOffers, getTokenPrice } from './otc-queue-utils';
-import { Alert } from './alert';
-import { PanelConfig } from './panel-config';
+import { formatNumber, formatDate, PageBlock, EventId, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from './global/index';
+import { getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, getProxyAddress, updateTokenBalances, SwapData, switchNetwork, getIPFSGatewayUrl, IOTCQueueConfig } from './store/index';
+import { executeSell, getHybridRouterAddress, getOffers, getTokenPrice } from './otc-queue-utils/index';
+import { Alert } from './alert/index';
+import { PanelConfig } from './panel-config/index';
+import { getERC20ApprovalModelAction } from './global/index';
+import scconfig from './scconfig.json';
 import './index.css';
-import { getERC20ApprovalModelAction } from './global';
 
 interface ScomOtcElement extends ControlElement {
-
+	title?: string;
+  description?: string;
+  logo?: string;
+  chainId?: number;
+  pairAddress: string;
+  direction?: boolean;
+  offerIndex: number;
+  commissionFee: string;
+  commissionFeeTo?: string;
 }
 
 declare global {
@@ -23,8 +33,15 @@ declare global {
 
 @customModule
 @customElements('i-scom-otc')
-export class ScomOtc extends Module implements PageBlock {
-	private data: any;
+export default class ScomOTC extends Module implements PageBlock {
+	private data: IOTCQueueConfig = {
+		chainId: 0,
+		pairAddress: '',
+		direction: false,
+		offerIndex: '',
+		commissionFee: '',
+		commissionFeeTo: ''
+	};
 	readonly onEdit: () => Promise<void>;
 	readonly onConfirm: () => Promise<void>;
 	readonly onDiscard: () => Promise<void>;
@@ -65,11 +82,84 @@ export class ScomOtc extends Module implements PageBlock {
 
 	validateConfig() {}
 
+	constructor(parent?: Container, options?: any) {
+		super(parent, options);
+		if (scconfig) {
+			setDataFromSCConfig(scconfig);
+		}
+		this.$eventBus = application.EventBus;
+		this.registerEvent();
+	}
+
 	static async create(options?: ScomOtcElement, parent?: Container){
     let self = new this(parent, options);
     await self.ready();
     return self;
   }
+
+	get chainId() {
+		return this.data.chainId ?? 0;
+	}
+	set chainId(value: number) {
+		this.data.chainId = value;
+		setCurrentChainId(this.data.chainId ?? getDefaultChainId());
+	}
+
+	get pairAddress() {
+		return this.data.pairAddress ?? '';
+	}
+	set pairAddress(value: string) {
+		this.data.pairAddress = value;
+	}
+
+	get direction() {
+    return this.data.direction ?? false;
+  }
+  set direction(value: boolean) {
+    this.data.direction = value;
+  }
+
+	get offerIndex() {
+		return this.data.offerIndex ?? '';
+	}
+	set offerIndex(value: string) {
+		this.data.offerIndex = value;
+	}
+
+	get commissionFee() {
+		return this.data.commissionFee ?? '';
+	}
+	set commissionFee(value: string) {
+		this.data.commissionFee = value;
+	}
+
+	get commissionFeeTo() {
+		return this.data.commissionFeeTo ?? '';
+	}
+	set commissionFeeTo(value: string) {
+		this.data.commissionFeeTo = value;
+	}
+	
+	get description() {
+		return this.data.description ?? '';
+	}
+	set description(value: string) {
+		this.data.description = value;
+	}
+
+	get logo() {
+		return this.data.logo ?? '';
+	}
+	set logo(value: string) {
+		this.data.logo = value;
+	}
+
+	get title() {
+		return this.data.title ?? '';
+	}
+	set title(value: string) {
+		this.data.title = value;
+	}
 
 	async getData() {
 		return this.data;
@@ -118,9 +208,7 @@ export class ScomOtc extends Module implements PageBlock {
 		this.otcQueueLayout.visible = true;
 	}
 
-	async config() {
-
-	}
+	async config() {}
 
 	async onConfigSave(otcQueue: any) {
 		this.data = otcQueue;
@@ -138,15 +226,6 @@ export class ScomOtc extends Module implements PageBlock {
 	private getCampaign(data?: any) {
 		const _data = data ? data : this.data;
 		return _data;
-	}
-
-	constructor(parent?: Container, options?: any) {
-		super(parent, options);
-		if (options && options) {
-			setDataFromSCConfig(options);
-		}
-		this.$eventBus = application.EventBus;
-		this.registerEvent();
 	}
 
 	private registerEvent = () => {
@@ -702,7 +781,7 @@ export class ScomOtc extends Module implements PageBlock {
 
 			const tradeFeePercent = new BigNumber(1).minus(this.otcQueueInfo.tradeFee).times(100).toFixed();
 			const orderSubTotalCaption = `Order Subtotal (With ${tradeFeePercent}% Trade Fee)`;
-			const isCommissionVisible = this.data.commissionFee && this.data.commissionFeeTo;
+			const isCommissionVisible = !!(this.data.commissionFee && this.data.commissionFeeTo);
 			const logoUrl = logo ? logo.replace('ipfs://', getIPFSGatewayUrl()) : null;
 			this.otcQueueElm.clearInnerHTML();
 			this.otcQueueElm.appendChild(
@@ -847,17 +926,19 @@ export class ScomOtc extends Module implements PageBlock {
 		}
 	}
 
-	init = async () => {
+	async init() {
+		this.isReadyCallbackQueued = true;
 		super.init();
-		this.pnlConfig = new PanelConfig();
-		this.pnlConfig.visible = false;
-		this.pnlConfig.onConfigSave = (campaign: any) => this.onConfigSave(campaign);
-		this.pnlConfig.onReset = () => {
-			this.pnlConfig.visible = false;
-			this.otcQueueLayout.visible = true;
-		}
-		this.otcQueueComponent.appendChild(this.pnlConfig);
-		this.otcQueueAlert = new Alert();
+		// this.pnlConfig = new PanelConfig();
+		// this.pnlConfig.visible = false;
+		// this.pnlConfig.onConfigSave = (campaign: any) => this.onConfigSave(campaign);
+		// this.pnlConfig.onReset = () => {
+		// 	this.pnlConfig.visible = false;
+		// 	this.otcQueueLayout.visible = true;
+		// }
+		// this.otcQueueComponent.appendChild(this.pnlConfig);
+
+		this.otcQueueAlert = await Alert.create() as Alert;
 		this.otcQueueComponent.appendChild(this.otcQueueAlert);
 		this.otcQueueAlert.visible = false;
 		this.showResultMessage(this.otcQueueAlert, 'warning', '');
@@ -865,11 +946,30 @@ export class ScomOtc extends Module implements PageBlock {
 			this.otcQueueAlert.closeModal();
 			this.otcQueueAlert.visible = true;
 		}, 100)
-		this.initWalletData();
-		setCurrentChainId(getDefaultChainId());
-		if (!this.data) {
-			await this.renderEmpty();
+
+		this.pnlConfig.onConfigSave = (campaign: any) => this.onConfigSave(campaign);
+		this.pnlConfig.onReset = () => {
+			this.pnlConfig.visible = false;
+			this.otcQueueLayout.visible = true;
 		}
+
+		this.data.chainId = this.getAttribute('chainId', true);
+		this.data.pairAddress = this.getAttribute('pairAddress', true);
+		this.data.direction = this.getAttribute('direction', true, true);
+		this.data.offerIndex = this.getAttribute('offerIndex', true);
+		this.data.commissionFee = this.getAttribute('commissionFee', true);
+		this.data.commissionFeeTo = this.getAttribute('commissionFeeTo', true);
+		this.data.title = this.getAttribute('title', true, '');
+		this.data.description = this.getAttribute('description', true, '');
+		this.data.logo = this.getAttribute('logo', true, '');
+
+		await this.initWalletData();
+		if (!this.data.pairAddress || !this.data.offerIndex)
+			await this.renderEmpty();
+		else
+			await this.setData(this.data);
+		this.isReadyCallbackQueued = false;
+    this.executeReadyCallback();
 	}
 
 	render() {
@@ -890,6 +990,10 @@ export class ScomOtc extends Module implements PageBlock {
 					</i-vstack>
 					<i-panel id="otcQueueElm" class="wrapper" />
 				</i-panel>
+				<otc-queue-config
+					id="pnlConfig"
+					visible={false}
+				></otc-queue-config>
 			</i-panel>
 		)
 	}

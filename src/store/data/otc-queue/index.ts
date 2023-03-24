@@ -1,5 +1,5 @@
 import { BigNumber } from "@ijstech/eth-contract";
-import { ITokenObject, QueueType } from "../global";
+import { ITokenObject, QueueType } from "../../../global/index";
 
 const OTCQueueAddresses: {
   [chainId: number]: {

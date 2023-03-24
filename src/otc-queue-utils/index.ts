@@ -2,7 +2,7 @@ import {
   toWeiInv,
   ITokenObject,
   numberToBytes32
-} from '../global';
+} from '../global/index';
 import { BigNumber, TransactionReceipt, Utils, Wallet } from '@ijstech/eth-wallet';
 import {
   getAddresses,
@@ -19,10 +19,10 @@ import {
   QueueOfferDetail,
   SwapData,
   getProxyAddress,
-} from '../store';
-import { Contracts } from '@scom/oswap-openswap-contract';
-import { Contracts as ProxyContracts } from '@scom/scom-commission-proxy-contract';
-import { Contracts as ChainLinkContracts } from '@scom/oswap-chainlink-contract';
+} from '../store/index';
+import { Contracts } from '../contracts/oswap-openswap-contract/index';
+import { Contracts as ProxyContracts } from '../contracts/scom-commission-proxy-contract/index';
+import { Contracts as ChainLinkContracts } from '../contracts/oswap-chainlink-contract/index';
 import { moment } from '@ijstech/components';
 
 const TRADE_FEE = { fee: '20', base: '1000' };

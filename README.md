@@ -2,6 +2,12 @@
 ```sh
 docker-compose up install
 ```
+
+## Step 2: Create and copy data to src/contracts folder
+```sh
+docker-compose up copy
+```
+
 ## Step 2: Build and bundle library
 ```sh
 docker-compose up build

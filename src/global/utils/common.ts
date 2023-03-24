@@ -1,5 +1,5 @@
 import { Wallet, Erc20, BigNumber, ISendTxEventsOptions } from "@ijstech/eth-wallet";
-import { Contracts } from "@scom/oswap-openswap-contract";
+import { Contracts } from "../../contracts/oswap-openswap-contract/index";
 
 interface ITokenObject {
   address?: string;

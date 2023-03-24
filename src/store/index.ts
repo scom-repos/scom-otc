@@ -1,6 +1,6 @@
 import { application } from '@ijstech/components';
 import { Erc20, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
-import { Contracts } from '@scom/oswap-openswap-contract';
+import { Contracts } from '../contracts/oswap-openswap-contract/index';
 
 import {
   ITokenObject,
@@ -9,7 +9,7 @@ import {
   getERC20Amount,
   INetwork,
   EventId,
-} from '../global';
+} from '../global/index';
 import Assets from '../assets';
 import {
   DefaultTokens,

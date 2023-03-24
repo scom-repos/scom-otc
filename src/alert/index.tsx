@@ -1,7 +1,7 @@
 import { customElements, Module, ControlElement, Modal, Panel, Label, Image, Button, Container, VStack } from '@ijstech/components';
 import { Wallet } from '@ijstech/eth-wallet';
-import { parseContractError } from '../global';
-import { getNetworkExplorerName, viewOnExplorerByTxHash } from '../store';
+import { parseContractError } from '../global/index';
+import { getNetworkExplorerName, viewOnExplorerByTxHash } from '../store/index';
 import styleClass from './alert.css';
 import Assets from '../assets';
 
@@ -41,7 +41,14 @@ export class Alert extends Module {
 		super(parent, options);
 	};
 
-	async init(){
+  static async create(options?: ControlElement, parent?: Container){
+    let self = new this(parent, options);
+    await self.ready();
+    await self.confirmModal.ready();
+    return self;
+  }
+
+	init(){
 		this.classList.add(styleClass);
 		super.init();
     this.confirmModal.onClose = () => {

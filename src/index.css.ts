@@ -1,6 +1,6 @@
 import { Styles } from '@ijstech/components';
 import Assets from './assets';
-import { MAX_HEIGHT, MAX_WIDTH } from './store';
+import { MAX_HEIGHT, MAX_WIDTH } from './store/index';
 const Theme = Styles.Theme.ThemeVars;
 Styles.Theme.defaultTheme.background.main = '#0c1234';
 Styles.Theme.defaultTheme.text.primary = '#fff';

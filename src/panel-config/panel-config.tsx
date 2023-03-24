@@ -1,8 +1,6 @@
 import { Button, Container, HStack, Panel, customElements, ControlElement, Module, IEventBus, application, Label, VStack } from '@ijstech/components';
-import { BigNumber } from '@ijstech/eth-wallet';
-import { downloadJsonFile, EventId } from '../global';
-import { getChainId, getNetworkInfo, IOTCQueueConfig, isWalletConnected } from '../store';
-import { Alert } from '../alert';
+import { downloadJsonFile, EventId } from '../global/index';
+import { getChainId, getNetworkInfo, IOTCQueueConfig, isWalletConnected } from '../store/index';
 import { CampaignConfig } from './campaign';
 import './panel-config.css';
 import Assets from '../assets';
@@ -20,12 +18,12 @@ export class PanelConfig extends Module {
   private lbNetworkName: Label;
   private otcCampaignElm: HStack;
   private pnlInfoElm: Panel;
-  private otcQueueAlert: Alert;
   private btnSave: Button;
   private btnExport: Button;
   private $eventBus: IEventBus;
   private campaignConfig: CampaignConfig;
   private loadingElm: VStack;
+  isInited: boolean = false;
   onConfigSave: any;
   onReset: any;
 
@@ -42,14 +40,16 @@ export class PanelConfig extends Module {
     this.$eventBus.register(this, EventId.chainChanged, this.onChangeChanged);
   }
 
-  private renderUI = () => {
+  private renderUI = async () => {
+    if (!this.isInited) await this.ready();
     const isConnected = isWalletConnected();
     this.networkElm.visible = !isConnected;
     this.otcCampaignElm.visible = isConnected;
     this.updateNetworkName(getChainId());
   }
 
-  private onChangeChanged = () => {
+  private onChangeChanged = async () => {
+    if (!this.isInited) await this.ready();
     const chainId = getChainId();
     this.updateNetworkName(chainId);
     this.updateButton();
@@ -70,17 +70,16 @@ export class PanelConfig extends Module {
 
   onBack = () => {
     this.pnlInfoElm.clearInnerHTML();
-    if (this.onReset) {
-      this.onReset();
-    }
+    if (this.onReset) this.onReset();
   }
 
-  private updateNetworkName = (chainId: number) => {
+  private async updateNetworkName(chainId: number) {
     const network = getNetworkInfo(chainId);
+    await this.lbNetworkName.ready();
     this.lbNetworkName.caption = network ? network.name : 'Unknown Network';
   }
 
-  private updateButton = () => {
+  private updateButton() {
     const valid = !!this.checkValidation();
     this.btnSave.enabled = valid;
     this.btnExport.enabled = valid;
@@ -120,8 +119,7 @@ export class PanelConfig extends Module {
 
   init() {
     super.init();
-    this.otcQueueAlert = new Alert();
-    this.appendChild(this.otcQueueAlert);
+    this.isInited = true;
   }
 
   render() {
@@ -176,6 +174,7 @@ export class PanelConfig extends Module {
             </i-vstack>
           </i-panel>
         </i-panel>
+        <otc-queue-alert id="otcQueueAlert"></otc-queue-alert>
       </i-panel>
     )
   }

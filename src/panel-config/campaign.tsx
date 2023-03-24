@@ -1,9 +1,8 @@
-import { Container, customElements, ControlElement, Module, Input, application, Control, Upload, Checkbox, Image, HStack, Label, VStack, Table, Modal, Icon, Button } from '@ijstech/components';
-import { BigNumber } from '@ijstech/eth-contract';
+import { Container, customElements, ControlElement, Module, Input, application, Control, Upload, Checkbox, Image, HStack, Label } from '@ijstech/components';
 import { Wallet } from '@ijstech/eth-wallet';
-import { EventId, formatNumber, isValidNumber } from '../global';
-import { getTokens } from '../otc-queue-utils';
-import { getTokenIcon, IOTCQueueConfig, tokenSymbol } from '../store';
+import { EventId, isValidNumber } from '../global/index';
+import { getTokens } from '../otc-queue-utils/index';
+import { getTokenIcon, IOTCQueueConfig, tokenSymbol } from '../store/index';
 
 declare global {
 	namespace JSX {
@@ -188,7 +187,7 @@ export class CampaignConfig extends Module {
 		super.init();
 		this.setupInput();
 		this.isInitialized = true;
-		this.setupData();
+		await this.setupData();
 	}
 
 	render() {
