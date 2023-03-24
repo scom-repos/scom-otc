@@ -3,8 +3,8 @@ import { BigNumber, Wallet, WalletPlugin } from '@ijstech/eth-wallet';
 import {} from '@ijstech/eth-contract';
 import Assets from './assets';
 import { formatNumber, formatDate, PageBlock, EventId, IERC20ApprovalAction, QueueType, ITokenObject, truncateAddress } from './global/index';
-import { getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, getProxyAddress, updateTokenBalances, SwapData, switchNetwork, getIPFSGatewayUrl, IOTCQueueConfig } from './store/index';
-import { executeSell, getHybridRouterAddress, getOffers, getTokenPrice } from './otc-queue-utils/index';
+import { getChainId, isWalletConnected, setTokenMap, getDefaultChainId, hasWallet, connectWallet, setDataFromSCConfig, setCurrentChainId, getTokenIcon, fallBackUrl, getTokenBalances, ChainNativeTokenByChainId, getNetworkInfo, hasMetaMask, MAX_WIDTH, MAX_HEIGHT, IOTCQueueData, viewOnExplorerByAddress, getProxyAddress, updateTokenBalances, SwapData, switchNetwork, getIPFSGatewayUrl, IOTCQueueConfig, getCurrentChainId } from './store/index';
+import { executeSell, getHybridRouterAddress, getOffers, getTokenPrice, getTokens } from './otc-queue-utils/index';
 import { Alert } from './alert/index';
 import { PanelConfig } from './panel-config/index';
 import { getERC20ApprovalModelAction } from './global/index';
@@ -292,7 +292,7 @@ export default class ScomOTC extends Module implements PageBlock {
 				}
 			} catch(err) {
 				console.log('err', err);
-				// await this.renderEmpty();
+				await this.renderEmpty();
 			}
 			if (!hideLoading && this.loadingElm) {
 				this.loadingElm.visible = false;
@@ -952,8 +952,7 @@ export default class ScomOTC extends Module implements PageBlock {
 			this.pnlConfig.visible = false;
 			this.otcQueueLayout.visible = true;
 		}
-
-		this.data.chainId = this.getAttribute('chainId', true);
+		await this.initWalletData();
 		this.data.pairAddress = this.getAttribute('pairAddress', true);
 		this.data.direction = this.getAttribute('direction', true, true);
 		this.data.offerIndex = this.getAttribute('offerIndex', true);
@@ -962,12 +961,20 @@ export default class ScomOTC extends Module implements PageBlock {
 		this.data.title = this.getAttribute('title', true, '');
 		this.data.description = this.getAttribute('description', true, '');
 		this.data.logo = this.getAttribute('logo', true, '');
-
-		await this.initWalletData();
-		if (!this.data.pairAddress || !this.data.offerIndex)
-			await this.renderEmpty();
-		else
-			await this.setData(this.data);
+		this.data.chainId = this.getAttribute('chainId', true);
+		// try {
+		// 	let tokens
+		// 	if (this.data.pairAddress.length >= 32)
+		// 		tokens = await getTokens(this.data.pairAddress);
+		// 	if (tokens.token0 && tokens.token1) {
+		// 		await this.setData(this.data);
+		// 	} else {
+		// 		await this.renderEmpty();
+		// 	}
+		// } catch {
+		// 	await this.renderEmpty();
+		// }
+		await this.setData(this.data);
 		this.isReadyCallbackQueued = false;
     this.executeReadyCallback();
 	}

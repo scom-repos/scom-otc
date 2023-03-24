@@ -19490,10 +19490,11 @@ define("@scom/scom-otc/panel-config/panel-config.tsx", ["require", "exports", "@
             };
             this.showInputCampaign = async (isNew, campaign) => {
                 this.pnlInfoElm.clearInnerHTML();
-                this.onAddCampaign(campaign);
+                await this.onAddCampaign(campaign);
             };
             this.onAddCampaign = async (campaign) => {
                 this.campaignConfig = new campaign_1.CampaignConfig();
+                await this.campaignConfig.ready();
                 this.campaignConfig.setLoading = (status) => { this.loadingElm.visible = status; };
                 this.campaignConfig.data = campaign;
                 this.pnlInfoElm.clearInnerHTML();
@@ -20072,7 +20073,7 @@ define("@scom/scom-otc", ["require", "exports", "@ijstech/components", "@ijstech
                     }
                     catch (err) {
                         console.log('err', err);
-                        // await this.renderEmpty();
+                        await this.renderEmpty();
                     }
                     if (!hideLoading && this.loadingElm) {
                         this.loadingElm.visible = false;
@@ -20754,7 +20755,7 @@ define("@scom/scom-otc", ["require", "exports", "@ijstech/components", "@ijstech
                 this.pnlConfig.visible = false;
                 this.otcQueueLayout.visible = true;
             };
-            this.data.chainId = this.getAttribute('chainId', true);
+            await this.initWalletData();
             this.data.pairAddress = this.getAttribute('pairAddress', true);
             this.data.direction = this.getAttribute('direction', true, true);
             this.data.offerIndex = this.getAttribute('offerIndex', true);
@@ -20763,11 +20764,21 @@ define("@scom/scom-otc", ["require", "exports", "@ijstech/components", "@ijstech
             this.data.title = this.getAttribute('title', true, '');
             this.data.description = this.getAttribute('description', true, '');
             this.data.logo = this.getAttribute('logo', true, '');
-            await this.initWalletData();
-            if (!this.data.pairAddress || !this.data.offerIndex)
-                await this.renderEmpty();
-            else
-                await this.setData(this.data);
+            this.data.chainId = this.getAttribute('chainId', true);
+            // try {
+            // 	let tokens
+            // 	if (this.data.pairAddress.length >= 32)
+            // 		tokens = await getTokens(this.data.pairAddress);
+            // 	if (tokens.token0 && tokens.token1) {
+            // 		await this.setData(this.data);
+            // 	} else {
+            // 		await this.renderEmpty();
+            // 	}
+            // 	// await this.pnlConfig.showInputCampaign(true, this.data);
+            // } catch {
+            // 	await this.renderEmpty();
+            // }
+            await this.setData(this.data);
             this.isReadyCallbackQueued = false;
             this.executeReadyCallback();
         }

@@ -19,8 +19,10 @@ export default class Module1 extends Module {
             "offerIndex": 2,
             "direction": true,
             "commissionFee": "",
-            "commissionFeeTo": ""
+            "commissionFeeTo": "",
+            chainId: 97
         });
+        this.otcEl.id = "otc2"
         this.mainStack.appendChild(this.otcEl);
     }
 
@@ -28,6 +30,7 @@ export default class Module1 extends Module {
         return <i-panel>
             <i-hstack id="mainStack" margin={{top: '1rem', left: '1rem'}} gap="2rem">
                 <i-scom-otc
+                    id="otc1"
                     title='OTC test'
                     logo="ipfs://bafkreid4rgdbomv7lbboqo7kvmyruwulotrvqslej4jbwmd2ruzkmn4xte"
                     pairAddress="0x648Dc2c179734737Ea420b0ba367C3a28ec5D648"

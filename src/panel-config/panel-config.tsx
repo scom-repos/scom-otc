@@ -57,11 +57,12 @@ export class PanelConfig extends Module {
 
   showInputCampaign = async (isNew: boolean, campaign?: IOTCQueueConfig) => {
     this.pnlInfoElm.clearInnerHTML();
-    this.onAddCampaign(campaign);
+    await this.onAddCampaign(campaign);
   }
 
   private onAddCampaign = async (campaign?: any) => {
     this.campaignConfig = new CampaignConfig();
+    await this.campaignConfig.ready();
     this.campaignConfig.setLoading = (status: boolean) => { this.loadingElm.visible = status };
     this.campaignConfig.data = campaign;
     this.pnlInfoElm.clearInnerHTML();
